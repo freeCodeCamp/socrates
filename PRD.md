@@ -9,13 +9,11 @@
 - [x] Configure development environment with nodemon
 - [x] Set up ESLint and Prettier for code quality
 
-### Step 1.2: DigitalOcean Infrastructure
+### Step 1.2: Local Development Infrastructure
 
-- [x] Create DigitalOcean Droplet (4GB RAM, 2 CPU cores) - 164.90.154.83
 - [x] Install Docker and Docker Compose (local)
-- [ ] Set up Ollama container with Llama 3.2 3B-Instruct
-- [ ] Configure firewall and security settings
-- [ ] Set up Redis for rate limiting
+- [x] Set up Ollama container with Llama 3.2 3B
+- [x] Set up Redis for rate limiting
 
 ### Step 1.3: Basic API Structure
 
@@ -102,6 +100,8 @@
 - [ ] Create Dockerfile for application
 - [ ] Set up Docker Compose with Redis and Ollama
 - [ ] Configure environment variables for production
+- [ ] Create DigitalOcean Droplet (4GB RAM, 2 CPU cores)
+- [ ] Configure firewall and security settings
 - [ ] Deploy to DigitalOcean Droplet
 
 ### Step 5.2: Monitoring & Logging
@@ -122,7 +122,7 @@
 
 ### Core Constraints & Requirements
 
-- **Model Size**: < 3 Billion Parameters (Llama 3.2 3B-Instruct)
+- **Model Size**: < 3 Billion Parameters (Llama 3.2 3B)
 - **Pedagogy**: The AI must provide hints, not solutions
 - **Input Data**: The raw input contains significant noise that must be filtered
 
@@ -177,9 +177,9 @@ Based on the error, give the student a hint.
 
 ### Infrastructure Requirements
 
-- **Platform**: DigitalOcean Droplet
+- **Platform**: Local development with Docker, production on DigitalOcean Droplet
 - **Runtime**: Ollama for local model serving
-- **Model**: Llama 3.2 3B-Instruct
+- **Model**: Llama 3.2 3B
 - **Resources**: Minimum 4GB RAM, 2 CPU cores
 - **Rate Limiting**: Redis-based, 10 req/min per user, 1000 req/min global
 
