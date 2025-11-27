@@ -2,18 +2,31 @@ import express, { Application, Request, Response } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import { PORT } from './config/env';
+import { PORT, ALLOWED_ORIGINS, NODE_ENV } from './config/env';
 import healthRouter from './routes/health';
 import { requestLogger } from './middleware/logger';
+import { simpleLogger } from './middleware/logger';
+import { errorHandler } from './middleware/errorHandler';
+import { logger } from './config/logger';
 
 const app: Application = express();
 
 // Middleware
 app.use(helmet());
-app.use(cors());
+// Configure CORS to be limited to ALLOWED_ORIGINS env. Default '*' (dev)
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow server-to-server or curl
+    if (ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error('CORS: origin not allowed'));
+  }
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(requestLogger);
+app.use(simpleLogger);
 
 // Routes
 app.use('/health', healthRouter);
@@ -28,11 +41,17 @@ app.use((_req, res) => {
 });
 
 // Error handler
-app.use((err: any, _req: Request, res: Response, _next: any) => {
-  console.error(err);
-  res.status(500).json({ error: 'Internal Server Error' });
+app.use(errorHandler);
+
+// Graceful shutdown and error events
+process.on('unhandledRejection', (reason) => {
+  logger.error(`Unhandled Rejection: ${reason}`);
+});
+process.on('uncaughtException', (err) => {
+  logger.error(`Uncaught Exception: ${err}`);
+  process.exit(1);
 });
 
 app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+  logger.info(`Server listening on port ${PORT} in ${NODE_ENV} mode`);
 });

@@ -1,13 +1,19 @@
 import morgan from 'morgan';
 import { Request, Response, NextFunction } from 'express';
+import { logger } from '../config/logger';
 
-export const requestLogger = morgan('combined');
+// configure morgan to write logs to winston
+export const requestLogger = morgan('combined', {
+  stream: {
+    write: (message: string) => logger.info(message.trim())
+  }
+});
 
 export function simpleLogger(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
   res.on('finish', () => {
     const elapsed = Date.now() - start;
-    console.info(`${req.method} ${req.originalUrl} ${res.statusCode} - ${elapsed}ms`);
+    logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} - ${elapsed}ms`);
   });
   next();
 }
