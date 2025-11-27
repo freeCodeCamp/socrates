@@ -23,6 +23,7 @@ Build for production and run:
 ```bash
 npm run build
 npm run start
+```
 
 ### Developer commands
 
@@ -38,10 +39,16 @@ npm run dev
 npm run lint
 ```
 
-- Format files with Prettier:
+ - Format files with Prettier:
 
 ```bash
 npm run format
+```
+
+- Run manual curl-based tests (helpful for debugging local Ollama/Redis):
+
+```bash
+npm run test:manual
 ```
 
 Create a `.env` file or copy `.env.example` for development environment variables:
@@ -84,14 +91,27 @@ Rate Limiting (Redis + LUA)
 ----------------------------
 
 The application uses a Redis-backed token bucket for rate limiting. For production safety and correctness under concurrency, an atomic LUA script is used to update per-user and global buckets in Redis. The script is embedded and executed with `EVAL`.
-```
-```
+ 
+Environment variables (defaults):
+- `PER_USER_LIMIT` (default 10) — per-user requests per minute.
+- `GLOBAL_LIMIT` (default 1000) — global requests per minute.
 
 ## Endpoints
 
 - `GET /health` - health check
  - `POST /hint` - returns a pedagogical hint as JSON: `{ "hint": "string", "model_used": "string" }`. The model used is provided in the response header `X-Model-Used`.
 	 - Note: If the model returns streaming chunks (JSONL/NDJSON), the server concatenates the text chunks into a single `hint` string and returns it in the `hint` field.
+	 - Additional header: `X-Model-Available` may be set to `false` if a fallback hint was returned.
+
+Manual tests & helpers
+-----------------------
+There is a `scripts/manual-tests.sh` helper script that runs a few practical `curl` examples (valid request, invalid request, rate-limiter scenario, model-fallback scenario). You can run it with:
+
+```bash
+npm run test:manual
+```
+
+The manual-tests script demonstrates the default JSON returned by `/hint`, headers shown, and how requests behave under rate-limiting.
 
 ## Notes
 
