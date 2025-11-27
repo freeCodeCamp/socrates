@@ -26,10 +26,10 @@
 
 ### Step 2.1: Input Sanitizer Implementation
 
-- [ ] Create sanitizer module to filter noise
-- [ ] Implement logic to discard: err, stack, message, testString
-- [ ] Extract and keep: description, userInput, first failed test text
-- [ ] Add input validation and error handling
+- [x] Create sanitizer module to filter noise
+- [x] Implement logic to discard: err, stack, message, testString
+- [x] Extract and keep: description, userInput, first failed test text
+- [x] Add input validation and error handling
 
 ### Step 2.2: Prompt Engineering
 
