@@ -6,7 +6,7 @@ import {
   OLLAMA_MAX_RETRIES,
   OLLAMA_BACKOFF_BASE_MS,
   MODEL_CB_FAILURES,
-  MODEL_CB_COOLDOWN_MS
+  MODEL_CB_COOLDOWN_MS,
 } from '../config/env';
 import { logger } from '../config/logger';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
@@ -23,7 +23,8 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
   let lastErr: any;
   const now = Date.now();
   // Circuit breaker state (module-scoped)
-  if (!(global as any)._ollamaCircuit) (global as any)._ollamaCircuit = { failures: 0, openedUntil: 0 };
+  if (!(global as any)._ollamaCircuit)
+    (global as any)._ollamaCircuit = { failures: 0, openedUntil: 0 };
   const cb = (global as any)._ollamaCircuit as { failures: number; openedUntil: number };
   if (cb.openedUntil && cb.openedUntil > now) {
     // circuit is open
@@ -36,10 +37,10 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
         url,
         {
           model: OLLAMA_MODEL,
-          prompt
+          prompt,
         },
         {
-          timeout: OLLAMA_TIMEOUT_MS
+          timeout: OLLAMA_TIMEOUT_MS,
         }
       );
 
@@ -52,7 +53,8 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
         if (obj.output?.[0]?.content) return obj.output[0].content;
         if (obj.response) return obj.response;
         if (obj.text) return obj.text;
-        if (obj.choices && obj.choices[0] && obj.choices[0].message) return obj.choices[0].message.content;
+        if (obj.choices && obj.choices[0] && obj.choices[0].message)
+          return obj.choices[0].message.content;
         // Ollama streaming chunk may embed response under `content` inside other fields
         if (obj.content) return obj.content;
         return null;
@@ -64,13 +66,16 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
           const parsed = JSON.parse(data);
           if (Array.isArray(parsed)) {
             // If it's an array of objects, extract and concatenate
-            hint = parsed.map(p => extractTextFromObject(p) || '').join('');
+            hint = parsed.map((p) => extractTextFromObject(p) || '').join('');
           } else {
             const extracted = extractTextFromObject(parsed);
             if (extracted) hint = extracted;
             else {
               // fallback: could be JSONL (newline-delimited JSON objects)
-              const lines = data.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+              const lines = data
+                .split(/\r?\n/)
+                .map((l) => l.trim())
+                .filter(Boolean);
               const parts: string[] = [];
               for (const line of lines) {
                 try {
@@ -87,7 +92,10 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
           }
         } catch (e) {
           // Not a single JSON object - try JSONL or plain text
-          const lines = data.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          const lines = data
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter(Boolean);
           const parts: string[] = [];
           for (const line of lines) {
             try {
@@ -102,8 +110,8 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
           else hint = data;
         }
       } else if (data.output?.[0]?.content) hint = data.output[0].content;
-      else if (data.output?.[0]?.content) hint = data.output[0].content;
-      else if (data.choices && data.choices[0] && data.choices[0].message) hint = data.choices[0].message.content;
+      else if (data.choices && data.choices[0] && data.choices[0].message)
+        hint = data.choices[0].message.content;
       else if (data.text) hint = data.text;
       else hint = JSON.stringify(data).slice(0, 1000);
 
@@ -117,7 +125,7 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
       // Exponential backoff with jitter
       const backoff = Math.min(OLLAMA_BACKOFF_BASE_MS * 2 ** attempt, 5000);
       const jitter = Math.floor(Math.random() * 200);
-      await new Promise(res => setTimeout(res, backoff + jitter));
+      await new Promise((res) => setTimeout(res, backoff + jitter));
     }
   }
 

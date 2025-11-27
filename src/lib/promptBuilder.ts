@@ -5,7 +5,7 @@ import { PromptSizeError } from '../errors/promptSizeError';
 function interpolate(template: string, values: Record<string, string | undefined>) {
   let out = template;
   for (const [k, v] of Object.entries(values)) {
-    out = out.replace(new RegExp(`\{${k}\}`, 'g'), v ? v : '');
+    out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), v ? v : '');
   }
   return out;
 }
@@ -25,7 +25,7 @@ export function buildPrompt(sanitized: SanitizedRequest): BuiltPrompt {
   const userPrompt = interpolate(USER_PROMPT_TEMPLATE, {
     description: desc,
     userInput: code,
-    failedTestText: errorText
+    failedTestText: errorText,
   });
 
   const full = `${SYSTEM_PROMPT}\n\n${userPrompt}`;
@@ -39,7 +39,7 @@ export function buildPrompt(sanitized: SanitizedRequest): BuiltPrompt {
     systemPrompt: SYSTEM_PROMPT,
     userPrompt,
     fullPrompt: full,
-    length: len
+    length: len,
   };
 }
 
