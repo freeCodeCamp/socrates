@@ -33,10 +33,11 @@
 
 ### Step 2.2: Prompt Engineering
 
-- [ ] Define system prompt with pedagogical constraints
-- [ ] Create user prompt template with XML delimiters
-- [ ] Implement prompt builder function
-- [ ] Add prompt length validation
+
+- [x] Define system prompt with pedagogical constraints
+- [x] Create user prompt template with XML delimiters
+- [x] Implement prompt builder function
+- [x] Add prompt length validation
 
 ### Step 2.3: Ollama Integration
 
