@@ -13,3 +13,6 @@ export const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'llama3.2:3b';
 export const OLLAMA_TIMEOUT_MS = process.env.OLLAMA_TIMEOUT_MS ? Number(process.env.OLLAMA_TIMEOUT_MS) : 10000;
 export const OLLAMA_MAX_RETRIES = process.env.OLLAMA_MAX_RETRIES ? Number(process.env.OLLAMA_MAX_RETRIES) : 2;
 export const OLLAMA_BACKOFF_BASE_MS = process.env.OLLAMA_BACKOFF_BASE_MS ? Number(process.env.OLLAMA_BACKOFF_BASE_MS) : 500; 
+export const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+export const PER_USER_LIMIT = process.env.PER_USER_LIMIT ? Number(process.env.PER_USER_LIMIT) : 10; // requests per minute
+export const GLOBAL_LIMIT = process.env.GLOBAL_LIMIT ? Number(process.env.GLOBAL_LIMIT) : 1000; // requests per minute

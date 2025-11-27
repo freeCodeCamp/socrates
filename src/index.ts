@@ -4,6 +4,8 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { PORT, ALLOWED_ORIGINS, NODE_ENV } from './config/env';
 import healthRouter from './routes/health';
+import hintRouter from './routes/hint';
+import rateLimiter from './lib/rateLimiter';
 import { requestLogger } from './middleware/logger';
 import { simpleLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
@@ -30,6 +32,8 @@ app.use(simpleLogger);
 
 // Routes
 app.use('/health', healthRouter);
+// Rate-limit the /hint endpoint per user and globally
+app.use('/hint', rateLimiter(), hintRouter);
 
 app.get('/', (_req: Request, res: Response) => {
   res.json({ message: 'thelibrarian API - ready', description: 'Visit /health for status' });

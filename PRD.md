@@ -33,7 +33,6 @@
 
 ### Step 2.2: Prompt Engineering
 
-
 - [x] Define system prompt with pedagogical constraints
 - [x] Create user prompt template with XML delimiters
 - [x] Implement prompt builder function
@@ -50,18 +49,18 @@
 
 ### Step 3.1: Request/Response Handling
 
-- [ ] Define TypeScript interfaces for request/response
-- [ ] Implement POST /hint endpoint
-- [ ] Add request validation middleware
-- [ ] Create response formatting logic
+- [x] Define TypeScript interfaces for request/response
+- [x] Implement POST /hint endpoint
+- [x] Add request validation middleware
+- [x] Create response formatting logic
 
 ### Step 3.2: Rate Limiting
 
-- [ ] Install Redis client
-- [ ] Implement token bucket algorithm
-- [ ] Add per-user rate limiting (10 req/min)
-- [ ] Add global rate limiting (1000 req/min)
-- [ ] Configure rate limit headers
+- [x] Install Redis client
+- [x] Implement token bucket algorithm (atomic via Redis Lua script)
+- [x] Add per-user rate limiting (10 req/min)
+- [x] Add global rate limiting (1000 req/min)
+- [x] Configure rate limit headers (X-RateLimit-Limit, X-RateLimit-Remaining)
 
 ### Step 3.3: Error Handling
 
