@@ -5,7 +5,7 @@ import bodyParser from 'body-parser';
 
 vi.mock('../lib/ollamaClient');
 
-const { generateFromOllama } = await import('../lib/ollamaClient');
+import { generateFromOllama } from '../lib/ollamaClient';
 
 import hintRouter from '../routes/hint';
 import { logger } from '../config/logger';
