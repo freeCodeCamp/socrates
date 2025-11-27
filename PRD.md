@@ -196,7 +196,13 @@ Based on the error, give the student a hint.
 }
 ```
 
-**Response Schema:**
+**Response (default):**
+
+- Content-Type: `application/json`
+- Body: JSON with a single concatenated hint, e.g. `{ "hint": "...", "model_used": "..." }`
+- Header: `X-Model-Used` with the model identifier (e.g., `llama3.2:3b`)
+
+If the client requests JSON (via `Accept: application/json`), the server will respond with:
 
 ```json
 {
@@ -204,3 +210,5 @@ Based on the error, give the student a hint.
   "model_used": "string"
 }
 ```
+
+Note: `hint` is a single string representing the final concatenated hint. If the model streams the response in chunks (JSONL), the API concatenates streamed fragments into a single `hint` string before returning.

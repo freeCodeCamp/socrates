@@ -21,9 +21,8 @@ describe('POST /hint', () => {
     app.use((err: any, _req: any, res: any, _next: any) => res.status(err.status || 500).json({ message: err.message }));
   });
 
-  it('returns generated hint for valid request', async () => {
+  it('returns generated hint for valid request (JSON default)', async () => {
     (generateFromOllama as any).mockResolvedValue({ hint: 'Focus on closing tags', model_used: 'llama3.2:3b' });
-
     const res = await request(app)
       .post('/hint')
       .send({ description: 'Add header', userInput: '<div></div>', tests: [] })
@@ -31,6 +30,22 @@ describe('POST /hint', () => {
 
     expect(res.body.hint).toBe('Focus on closing tags');
     expect(res.body.model_used).toBe('llama3.2:3b');
+    expect(res.headers['x-model-used']).toBe('llama3.2:3b');
+    expect(res.headers['content-type']).toMatch(/application\/json/);
+  });
+
+  it('returns JSON hint if Accept: application/json is requested (explicit)', async () => {
+    (generateFromOllama as any).mockResolvedValue({ hint: 'JSON hint', model_used: 'llama3.2:3b' });
+
+    const res = await request(app)
+      .post('/hint')
+      .set('Accept', 'application/json')
+      .send({ description: 'Add header', userInput: '<div></div>', tests: [] })
+      .expect(200);
+
+    expect(res.body.hint).toBe('JSON hint');
+    expect(res.body.model_used).toBe('llama3.2:3b');
+    expect(res.headers['content-type']).toMatch(/application\/json/);
   });
 
   it('returns 400 for invalid request body', async () => {
@@ -49,6 +64,7 @@ describe('POST /hint', () => {
     expect(res.body.hint).toBeDefined();
     expect(res.body.model_used).toBe('fallback');
     expect(res.headers['x-model-available']).toBe('false');
+    expect(res.headers['x-model-used']).toBe('fallback');
   });
 
   it('returns 500 if model errors out with generic error', async () => {

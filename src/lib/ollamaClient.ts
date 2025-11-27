@@ -46,7 +46,62 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
       // Ollama's response shape may include `choices` or plain text; try common fields
       const data = res.data || {};
       let hint = '';
-      if (typeof data === 'string') hint = data;
+      const extractTextFromObject = (obj: any): string | null => {
+        if (!obj) return null;
+        if (typeof obj === 'string') return obj;
+        if (obj.output?.[0]?.content) return obj.output[0].content;
+        if (obj.response) return obj.response;
+        if (obj.text) return obj.text;
+        if (obj.choices && obj.choices[0] && obj.choices[0].message) return obj.choices[0].message.content;
+        // Ollama streaming chunk may embed response under `content` inside other fields
+        if (obj.content) return obj.content;
+        return null;
+      };
+
+      if (typeof data === 'string') {
+        // Try parsing the whole string as JSON
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed)) {
+            // If it's an array of objects, extract and concatenate
+            hint = parsed.map(p => extractTextFromObject(p) || '').join('');
+          } else {
+            const extracted = extractTextFromObject(parsed);
+            if (extracted) hint = extracted;
+            else {
+              // fallback: could be JSONL (newline-delimited JSON objects)
+              const lines = data.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+              const parts: string[] = [];
+              for (const line of lines) {
+                try {
+                  const p = JSON.parse(line);
+                  const t = extractTextFromObject(p);
+                  if (t) parts.push(t);
+                } catch (e) {
+                  // not JSON, ignore
+                }
+              }
+              if (parts.length) hint = parts.join('');
+              else hint = data;
+            }
+          }
+        } catch (e) {
+          // Not a single JSON object - try JSONL or plain text
+          const lines = data.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+          const parts: string[] = [];
+          for (const line of lines) {
+            try {
+              const p = JSON.parse(line);
+              const t = extractTextFromObject(p);
+              if (t) parts.push(t);
+            } catch (err) {
+              // not JSON, skip
+            }
+          }
+          if (parts.length) hint = parts.join('');
+          else hint = data;
+        }
+      } else if (data.output?.[0]?.content) hint = data.output[0].content;
       else if (data.output?.[0]?.content) hint = data.output[0].content;
       else if (data.choices && data.choices[0] && data.choices[0].message) hint = data.choices[0].message.content;
       else if (data.text) hint = data.text;

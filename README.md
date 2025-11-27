@@ -90,6 +90,8 @@ The application uses a Redis-backed token bucket for rate limiting. For producti
 ## Endpoints
 
 - `GET /health` - health check
+ - `POST /hint` - returns a pedagogical hint as JSON: `{ "hint": "string", "model_used": "string" }`. The model used is provided in the response header `X-Model-Used`.
+	 - Note: If the model returns streaming chunks (JSONL/NDJSON), the server concatenates the text chunks into a single `hint` string and returns it in the `hint` field.
 
 ## Notes
 

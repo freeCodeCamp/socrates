@@ -43,4 +43,14 @@ describe('generateFromOllama', () => {
     mockedAxios.post = vi.fn().mockRejectedValue(new Error('oom'));
     await expect(generateFromOllama('foo')).rejects.toThrow();
   });
+
+  it('concatenates JSONL streaming responses into a single hint string', async () => {
+    process.env.OLLAMA_MAX_RETRIES = '1';
+    process.env.OLLAMA_TIMEOUT_MS = '1000';
+    const { generateFromOllama } = await import('../lib/ollamaClient?cacheBust=' + Date.now());
+    const jsonl = '{"response":"It"}\n{"response":" looks"}\n{"response":" great"}';
+    mockedAxios.post = vi.fn().mockResolvedValue({ data: jsonl });
+    const res = await generateFromOllama('foo');
+    expect(res.hint).toBe('It looks great');
+  });
 });

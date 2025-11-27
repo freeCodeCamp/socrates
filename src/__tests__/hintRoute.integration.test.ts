@@ -30,7 +30,7 @@ if (!process.env.RUN_OLLAMA_INTEGRATION) {
       expect(res.status).toBe(200);
       expect(res.body.hint).toBeDefined();
       expect(res.body.hint.length).toBeGreaterThan(0);
-      expect(res.body.model_used).toBeDefined();
+      expect(res.headers['x-model-used']).toBeDefined();
     }, 20000);
   });
 }

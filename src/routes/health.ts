@@ -1,8 +1,7 @@
 import { Router, Request, Response } from 'express';
-import { ENABLE_EXTENDED_HEALTH } from '../config/env';
+import { ENABLE_EXTENDED_HEALTH , OLLAMA_HOST } from '../config/env';
 import redisClient from '../config/redis';
 import axios from 'axios';
-import { OLLAMA_HOST } from '../config/env';
 
 const router = Router();
 

@@ -6,8 +6,7 @@ import { PORT, ALLOWED_ORIGINS, NODE_ENV } from './config/env';
 import healthRouter from './routes/health';
 import hintRouter from './routes/hint';
 import rateLimiter from './lib/rateLimiter';
-import { requestLogger } from './middleware/logger';
-import { simpleLogger } from './middleware/logger';
+import { requestLogger , simpleLogger } from './middleware/logger';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './config/logger';
 
