@@ -37,4 +37,28 @@ describe('POST /hint', () => {
     const res = await request(app).post('/hint').send({ userInput: '<div></div>' }).expect(400);
     expect(res.body.message).toBeDefined();
   });
+
+  it('returns fallback hint when model is unavailable', async () => {
+    (generateFromOllama as any).mockRejectedValue(new (await import('../errors/modelUnavailableError')).ModelUnavailableError('cb open'));
+
+    const res = await request(app)
+      .post('/hint')
+      .send({ description: 'Add header', userInput: '<div></div>', tests: [] })
+      .expect(200);
+
+    expect(res.body.hint).toBeDefined();
+    expect(res.body.model_used).toBe('fallback');
+    expect(res.headers['x-model-available']).toBe('false');
+  });
+
+  it('returns 500 if model errors out with generic error', async () => {
+    (generateFromOllama as any).mockRejectedValue(new Error('unexpected'));
+
+    const res = await request(app)
+      .post('/hint')
+      .send({ description: 'Add header', userInput: '<div></div>', tests: [] })
+      .expect(500);
+
+    expect(res.body.message).toBeDefined();
+  });
 });

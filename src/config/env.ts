@@ -16,3 +16,6 @@ export const OLLAMA_BACKOFF_BASE_MS = process.env.OLLAMA_BACKOFF_BASE_MS ? Numbe
 export const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 export const PER_USER_LIMIT = process.env.PER_USER_LIMIT ? Number(process.env.PER_USER_LIMIT) : 10; // requests per minute
 export const GLOBAL_LIMIT = process.env.GLOBAL_LIMIT ? Number(process.env.GLOBAL_LIMIT) : 1000; // requests per minute
+export const MODEL_CB_FAILURES = process.env.MODEL_CB_FAILURES ? Number(process.env.MODEL_CB_FAILURES) : 3; // failures before open
+export const MODEL_CB_COOLDOWN_MS = process.env.MODEL_CB_COOLDOWN_MS ? Number(process.env.MODEL_CB_COOLDOWN_MS) : 30000; // cooldown
+export const ENABLE_EXTENDED_HEALTH = process.env.ENABLE_EXTENDED_HEALTH === 'true';

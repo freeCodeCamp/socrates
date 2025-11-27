@@ -1,6 +1,15 @@
 import axios from 'axios';
-import { OLLAMA_HOST, OLLAMA_MODEL, OLLAMA_TIMEOUT_MS, OLLAMA_MAX_RETRIES, OLLAMA_BACKOFF_BASE_MS } from '../config/env';
+import {
+  OLLAMA_HOST,
+  OLLAMA_MODEL,
+  OLLAMA_TIMEOUT_MS,
+  OLLAMA_MAX_RETRIES,
+  OLLAMA_BACKOFF_BASE_MS,
+  MODEL_CB_FAILURES,
+  MODEL_CB_COOLDOWN_MS
+} from '../config/env';
 import { logger } from '../config/logger';
+import { ModelUnavailableError } from '../errors/modelUnavailableError';
 
 export interface OllamaResponse {
   hint: string;
@@ -12,6 +21,14 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
   const url = `${OLLAMA_HOST}/api/generate`;
   let attempt = 0;
   let lastErr: any;
+  const now = Date.now();
+  // Circuit breaker state (module-scoped)
+  if (!(global as any)._ollamaCircuit) (global as any)._ollamaCircuit = { failures: 0, openedUntil: 0 };
+  const cb = (global as any)._ollamaCircuit as { failures: number; openedUntil: number };
+  if (cb.openedUntil && cb.openedUntil > now) {
+    // circuit is open
+    throw new ModelUnavailableError('Model circuit breaker is open');
+  }
 
   while (attempt <= OLLAMA_MAX_RETRIES) {
     try {
@@ -50,7 +67,14 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
   }
 
   logger.error(`Ollama generate attempts failed: ${lastErr?.message || lastErr}`);
-  throw lastErr || new Error('Ollama generate failed');
+  // Increment failure count and possibly open circuit
+  cb.failures = (cb.failures || 0) + 1;
+  if (cb.failures >= MODEL_CB_FAILURES) {
+    cb.openedUntil = Date.now() + MODEL_CB_COOLDOWN_MS;
+    cb.failures = 0; // reset failures after open
+    logger.warn(`Ollama circuit breaker opened until ${new Date(cb.openedUntil).toISOString()}`);
+  }
+  throw lastErr || new ModelUnavailableError('Ollama generate failed');
 }
 
 export default generateFromOllama;
