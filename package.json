@@ -18,7 +18,8 @@
     "test:manual": "bash ./scripts/manual-tests.sh",
     "compose:up": "docker-compose up -d",
     "compose:down": "docker-compose down",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "generate-api-key": "ts-node scripts/generate-api-key.ts"
   },
   "author": "",
   "license": "MIT",

@@ -19,3 +19,9 @@ export const GLOBAL_LIMIT = process.env.GLOBAL_LIMIT ? Number(process.env.GLOBAL
 export const MODEL_CB_FAILURES = process.env.MODEL_CB_FAILURES ? Number(process.env.MODEL_CB_FAILURES) : 3; // failures before open
 export const MODEL_CB_COOLDOWN_MS = process.env.MODEL_CB_COOLDOWN_MS ? Number(process.env.MODEL_CB_COOLDOWN_MS) : 30000; // cooldown
 export const ENABLE_EXTENDED_HEALTH = process.env.ENABLE_EXTENDED_HEALTH === 'true';
+export const API_KEY = process.env.API_KEY || '';
+
+// Validate required environment variables in production
+if (isProd && !API_KEY) {
+  throw new Error('API_KEY environment variable is required in production');
+}

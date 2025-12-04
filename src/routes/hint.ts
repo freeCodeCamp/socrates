@@ -5,8 +5,12 @@ import { generateFromOllama } from '../lib/ollamaClient';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
 import { InputValidationError } from '../errors/inputValidationError';
 import { logger } from '../config/logger';
+import apiKeyAuthMiddleware from '../middleware/apiKeyAuth';
 
 const router = Router();
+
+// Apply API key authentication to all routes in this router
+router.use(apiKeyAuthMiddleware);
 
 router.post('/', async (req: Request, res: Response, next: NextFunction) => {
   try {

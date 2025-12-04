@@ -3,6 +3,15 @@ import request from 'supertest';
 import express from 'express';
 import bodyParser from 'body-parser';
 
+// Mock the API_KEY before importing routes
+vi.mock('../config/env', async () => {
+  const actual = await vi.importActual('../config/env');
+  return {
+    ...actual,
+    API_KEY: '', // Disable API key validation in tests
+  };
+});
+
 vi.mock('../lib/ollamaClient');
 
 import { generateFromOllama } from '../lib/ollamaClient';
