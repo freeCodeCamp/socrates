@@ -17,6 +17,7 @@ describe('sanitizeRequest', () => {
     const raw = {
       description: '<p>foo</p>',
       userInput: '<div>bar</div>',
+      userId: 'user_123',
       tests: [
         {
           text: 'should have X',
@@ -43,7 +44,7 @@ describe('sanitizeRequest', () => {
   });
 
   it('returns undefined failedTestText when no tests provided', () => {
-    const raw = { description: 'D', userInput: 'U', tests: [] } as any;
+    const raw = { description: 'D', userInput: 'U', userId: 'user_123', tests: [] } as any;
     const s = sanitizeRequest(raw);
     expect(s.failedTestText).toBeUndefined();
     expect(s.firstTest).toBeUndefined();
@@ -53,6 +54,7 @@ describe('sanitizeRequest', () => {
     const raw = {
       description: 'D',
       userInput: 'U',
+      userId: 'user_123',
       tests: [
         { text: 'ok1', name: 'ok1' },
         { err: { message: 'boom' }, text: 'failed test', name: 'fail' }

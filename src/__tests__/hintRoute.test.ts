@@ -25,7 +25,7 @@ describe('POST /hint', () => {
     (generateFromOllama as any).mockResolvedValue({ hint: 'Focus on closing tags', model_used: 'llama3.2:3b' });
     const res = await request(app)
       .post('/hint')
-      .send({ description: 'Add header', userInput: '<div></div>', tests: [] })
+      .send({ description: 'Add header', userInput: '<div></div>', userId: 'user_123', tests: [{ text: 'test', failed: true }] })
       .expect(200);
 
     expect(res.body.hint).toBe('Focus on closing tags');
@@ -40,7 +40,7 @@ describe('POST /hint', () => {
     const res = await request(app)
       .post('/hint')
       .set('Accept', 'application/json')
-      .send({ description: 'Add header', userInput: '<div></div>', tests: [] })
+      .send({ description: 'Add header', userInput: '<div></div>', userId: 'user_123', tests: [{ text: 'test', failed: true }] })
       .expect(200);
 
     expect(res.body.hint).toBe('JSON hint');
@@ -58,7 +58,7 @@ describe('POST /hint', () => {
 
     const res = await request(app)
       .post('/hint')
-      .send({ description: 'Add header', userInput: '<div></div>', tests: [] })
+      .send({ description: 'Add header', userInput: '<div></div>', userId: 'user_123', tests: [{ text: 'test', failed: true }] })
       .expect(200);
 
     expect(res.body.hint).toBeDefined();
@@ -72,7 +72,7 @@ describe('POST /hint', () => {
 
     const res = await request(app)
       .post('/hint')
-      .send({ description: 'Add header', userInput: '<div></div>', tests: [] })
+      .send({ description: 'Add header', userInput: '<div></div>', userId: 'user_123', tests: [{ text: 'test', failed: true }] })
       .expect(500);
 
     expect(res.body.message).toBeDefined();

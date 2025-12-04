@@ -39,6 +39,12 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
   if (!isNonEmptyString(userInput)) {
     throw new InputValidationError('userInput is required and must be a non-empty string');
   }
+  if (!Array.isArray(tests)) {
+    throw new InputValidationError('tests is required and must be a non-empty array');
+  }
+  if (!isNonEmptyString(userId)) {
+    throw new InputValidationError('userId is required and must be a non-empty string');
+  }
 
   const sanitized: SanitizedRequest = {
     userId,
@@ -46,7 +52,7 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
     userInput: userInput.trim()
   };
 
-  // If tests is an array, sanitize tests and extract first failed test's text if available
+  // Sanitize tests and extract first failed test's text if available
   if (Array.isArray(tests)) {
     // Strategy: find first failed test or first test with error-like fields; otherwise pick first test
     let candidate: RawTestObject | undefined;
