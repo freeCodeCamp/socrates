@@ -4,64 +4,76 @@ import { InputValidationError } from '../errors/inputValidationError';
 
 describe('sanitizeRequest', () => {
   it('throws when description missing', () => {
-    const raw = { userInput: '<div></div>' } as any;
+    const raw = { userInput: '<div></div>', seed: '<html></html>', userId: 'user_123' } as any;
     expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
   });
 
   it('throws when userInput missing', () => {
-    const raw = { description: '<p>Test</p>' } as any;
+    const raw = { description: '<p>Test</p>', seed: '<html></html>', userId: 'user_123' } as any;
     expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
   });
 
-  it('extracts failed test text and removes noise fields', () => {
+  it('does not throw when seed missing', () => {
+    const raw = { description: '<p>Test</p>', userInput: '<div></div>', userId: 'user_123' } as any;
+    const s = sanitizeRequest(raw);
+    expect(s.seed).toBe('');
+  });
+
+  it('throws when userId missing', () => {
+    const raw = { description: '<p>Test</p>', userInput: '<div></div>', seed: '<html></html>' } as any;
+    expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
+  });
+
+  it('concatenates hints array into single string', () => {
     const raw = {
       description: '<p>foo</p>',
       userInput: '<div>bar</div>',
+      seed: '<html><body></body></html>',
       userId: 'user_123',
-      tests: [
-        {
-          text: 'should have X',
-          err: { message: 'boom' },
-          stack: 'stack trace',
-          message: 'error message',
-          testString: "assert.equal(x, 2)",
-          name: 'should have X',
-          duration: 3
-        }
+      hints: [
+        { text: 'Your main element should have an opening tag.', failed: false },
+        { text: 'Your main element should have a closing tag.', failed: false },
+        { text: 'Your main element should be below body element.', failed: false }
       ]
     } as any;
 
     const s = sanitizeRequest(raw);
     expect(s.description).toBe('<p>foo</p>');
     expect(s.userInput).toBe('<div>bar</div>');
-    expect(s.failedTestText).toBe('should have X');
-    expect(s.firstTest).toBeDefined();
-    expect((s.firstTest as any).err).toBeUndefined();
-    expect((s.firstTest as any).message).toBeUndefined();
-    expect((s.firstTest as any).stack).toBeUndefined();
-    expect((s.firstTest as any).testString).toBeUndefined();
-    expect((s.firstTest as any).duration).toBe(3);
+    expect(s.seed).toBe('<html><body></body></html>');
+    expect(s.hints).toBeDefined();
+    expect(s.hints).toContain('Your main element should have an opening tag.');
+    expect(s.hints).toContain('Your main element should have a closing tag.');
   });
 
-  it('returns undefined failedTestText when no tests provided', () => {
-    const raw = { description: 'D', userInput: 'U', userId: 'user_123', tests: [] } as any;
+  it('returns undefined hints when no hints provided', () => {
+    const raw = { 
+      description: 'D', 
+      userInput: 'U', 
+      seed: 'S', 
+      userId: 'user_123', 
+      hints: [] 
+    } as any;
     const s = sanitizeRequest(raw);
-    expect(s.failedTestText).toBeUndefined();
-    expect(s.firstTest).toBeUndefined();
+    expect(s.hints).toBeUndefined();
   });
 
-  it('picks first failed test even when not first in list', () => {
+  it('filters out non-string and invalid hints', () => {
     const raw = {
       description: 'D',
       userInput: 'U',
+      seed: 'S',
       userId: 'user_123',
-      tests: [
-        { text: 'ok1', name: 'ok1' },
-        { err: { message: 'boom' }, text: 'failed test', name: 'fail' }
+      hints: [
+        { text: 'Valid hint' },
+        null,
+        { text: '' },
+        { text: 'Another valid hint', failed: true },
+        undefined,
+        { text: 123 }
       ]
     } as any;
     const s = sanitizeRequest(raw);
-    expect(s.failedTestText).toBe('failed test');
-    expect(s.firstTest!.text).toBe('failed test');
+    expect(s.hints).toBe('1. Valid hint\n2. Another valid hint (FAILED)');
   });
 });

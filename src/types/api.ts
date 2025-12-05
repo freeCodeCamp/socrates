@@ -2,7 +2,8 @@ export interface HintRequest {
   userId?: string;
   description: string;
   userInput: string;
-  tests?: any[];
+  seed: string;
+  hints?: string[];
   [key: string]: any;
 }
 

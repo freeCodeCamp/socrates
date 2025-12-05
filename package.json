@@ -16,8 +16,6 @@
     "test": "vitest run",
     "test:integration": "RUN_OLLAMA_INTEGRATION=true vitest run src/__tests__/ollamaClient.integration.test.ts src/__tests__/hintRoute.integration.test.ts",
     "test:manual": "bash ./scripts/manual-tests.sh",
-    "compose:up": "docker-compose up -d",
-    "compose:down": "docker-compose down",
     "test:watch": "vitest",
     "generate-api-key": "ts-node scripts/generate-api-key.ts"
   },

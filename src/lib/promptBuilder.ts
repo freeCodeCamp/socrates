@@ -20,12 +20,14 @@ export interface BuiltPrompt {
 export function buildPrompt(sanitized: SanitizedRequest): BuiltPrompt {
   const desc = sanitized.description || '';
   const code = sanitized.userInput || '';
-  const errorText = sanitized.failedTestText || '';
+  const seed = sanitized.seed || '';
+  const hints = sanitized.hints || '';
 
   const userPrompt = interpolate(USER_PROMPT_TEMPLATE, {
     description: desc,
     userInput: code,
-    failedTestText: errorText,
+    seed: seed,
+    hints: hints,
   });
 
   const full = `${SYSTEM_PROMPT}\n\n${userPrompt}`;

@@ -22,10 +22,19 @@ if (!process.env.RUN_OLLAMA_INTEGRATION) {
       const payload = {
         description: '<p>test description</p>',
         userInput: '<div>student code</div>',
-        tests: [{ name: 'fail', text: 'Test fails', err: { message: 'boom' } }]
+        seed: '<html><body></body></html>',
+        userId: 'user_123',
+        hints: [
+          { text: 'Your element should have an opening tag.', failed: true },
+          { text: 'Your element should have a closing tag.' }
+        ]
       };
 
-      const res = await request(app).post('/hint').send(payload).timeout(20000);
+      const res = await request(app)
+        .post('/hint')
+        .set('X-API-Key', 'secret')
+        .send(payload)
+        .timeout(20000);
 
       expect(res.status).toBe(200);
       expect(res.body.hint).toBeDefined();

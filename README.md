@@ -2,7 +2,11 @@
 
 freeCodeCamp AI Hint API (The Librarian)
 
-This repository hosts a TypeScript Express API which returns pedagogical hints for freeCodeCamp steps using a local LLM (Ollama + Llama 3.2 3B-Instruct).
+This repository hosts a TypeScript Express API which returns pedagogical hints for freeCodeCamp steps using a local LLM (Ollama + qwen2.5:7b).
+
+**Model:** qwen2.5:7b (upgraded from llama3.2:3b for improved reasoning and instruction-following)
+
+**Supported Languages:** HTML, CSS, JavaScript, Python (language-agnostic design - extensible to more)
 
 ## Setup (local development)
 
@@ -85,7 +89,17 @@ npm run test
 npm run test:integration
 ```
 
-Default model name used for Ollama requests is `llama3.2:3b` (see `scripts/setup-ollama.sh`).
+Default model name used for Ollama requests is `qwen2.5:7b` (see `scripts/setup-ollama.sh`).
+
+**Comparison Testing:**
+
+To validate the model's performance across languages, run the automated comparison tests:
+
+```bash
+./scripts/test-comparison.sh
+```
+
+This runs 8 tests (2 HTML, 2 CSS, 2 JavaScript, 2 Python) with 3 runs each, averages responses, and saves results to `comparison-results.md`. See `COMPARISON_TESTS.md` for test case details.
 
 Rate Limiting (Redis + LUA)
 ----------------------------
@@ -99,9 +113,25 @@ Environment variables (defaults):
 ## Endpoints
 
 - `GET /health` - health check
- - `POST /hint` - returns a pedagogical hint as JSON: `{ "hint": "string", "model_used": "string" }`. The model used is provided in the response header `X-Model-Used`.
-	 - Note: If the model returns streaming chunks (JSONL/NDJSON), the server concatenates the text chunks into a single `hint` string and returns it in the `hint` field.
-	 - Additional header: `X-Model-Available` may be set to `false` if a fallback hint was returned.
+- `POST /hint` - returns a pedagogical hint as JSON: `{ "hint": "string", "model_used": "string" }`.
+
+### Request Schema
+
+```json
+{
+  "userId": "user-id-string",
+  "description": "Step instructions from freeCodeCamp challenge",
+  "userInput": "Student's attempted code",
+  "seed": "Starting code for the challenge",
+  "hints": ["Test message 1", "Test message 2"]
+}
+```
+
+### Response
+
+- The model used is provided in the response header `X-Model-Used`.
+- If the model returns streaming chunks (JSONL/NDJSON), the server concatenates the text chunks into a single `hint` string and returns it in the `hint` field.
+- Additional header: `X-Model-Available` may be set to `false` if a fallback hint was returned.
 
 Manual tests & helpers
 -----------------------
@@ -115,4 +145,6 @@ The manual-tests script demonstrates the default JSON returned by `/hint`, heade
 
 ## Notes
 
-- See `PRD.md` for the project plan and technical requirements.
+- See `PRD.md` for the project plan, technical requirements, and language expansion roadmap.
+- See `COMPARISON_TESTS.md` for multi-language test cases and validation methodology.
+- See `comparison-results.md` for recent test results with qwen2.5:7b.

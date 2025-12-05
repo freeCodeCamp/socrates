@@ -79,3 +79,9 @@ pids
 
 # DynamoDB Local files
 .dynamodb/
+
+# freeCodeCamp files 
+blocks
+
+# testing files
+comparison-results.md

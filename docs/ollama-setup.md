@@ -26,7 +26,7 @@ curl http://localhost:11434/api/tags
 curl -X POST http://localhost:11434/api/generate \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "llama3.2:3b-instruct",
+    "model": "qwen2.5:7b",
     "prompt": "What is a simple hint for learning HTML?",
     "stream": false
   }'
@@ -55,6 +55,6 @@ docker-compose up -d
 
 ## Model Info
 
-- **Model**: llama3.2:3b-instruct
+- **Model**: qwen2.5:7b
 - **Size**: ~2GB
 - **RAM Usage**: ~2-4GB

@@ -31,29 +31,41 @@ describe('POST /hint', () => {
   });
 
   it('returns generated hint for valid request (JSON default)', async () => {
-    (generateFromOllama as any).mockResolvedValue({ hint: 'Focus on closing tags', model_used: 'llama3.2:3b' });
+    (generateFromOllama as any).mockResolvedValue({ hint: 'Focus on closing tags', model_used: 'qwen2.5:7b' });
     const res = await request(app)
       .post('/hint')
-      .send({ description: 'Add header', userInput: '<div></div>', userId: 'user_123', tests: [{ text: 'test', failed: true }] })
+      .send({ 
+        description: 'Add header', 
+        userInput: '<div></div>', 
+        seed: '<html><body></body></html>',
+        userId: 'user_123', 
+        hints: ['Your element should have an opening tag.'] 
+      })
       .expect(200);
 
     expect(res.body.hint).toBe('Focus on closing tags');
-    expect(res.body.model_used).toBe('llama3.2:3b');
-    expect(res.headers['x-model-used']).toBe('llama3.2:3b');
+    expect(res.body.model_used).toBe('qwen2.5:7b');
+    expect(res.headers['x-model-used']).toBe('qwen2.5:7b');
     expect(res.headers['content-type']).toMatch(/application\/json/);
   });
 
   it('returns JSON hint if Accept: application/json is requested (explicit)', async () => {
-    (generateFromOllama as any).mockResolvedValue({ hint: 'JSON hint', model_used: 'llama3.2:3b' });
+    (generateFromOllama as any).mockResolvedValue({ hint: 'JSON hint', model_used: 'qwen2.5:7b' });
 
     const res = await request(app)
       .post('/hint')
       .set('Accept', 'application/json')
-      .send({ description: 'Add header', userInput: '<div></div>', userId: 'user_123', tests: [{ text: 'test', failed: true }] })
+      .send({ 
+        description: 'Add header', 
+        userInput: '<div></div>', 
+        seed: '<html><body></body></html>',
+        userId: 'user_123', 
+        hints: ['Your element should have an opening tag.'] 
+      })
       .expect(200);
 
     expect(res.body.hint).toBe('JSON hint');
-    expect(res.body.model_used).toBe('llama3.2:3b');
+    expect(res.body.model_used).toBe('qwen2.5:7b');
     expect(res.headers['content-type']).toMatch(/application\/json/);
   });
 
@@ -67,7 +79,13 @@ describe('POST /hint', () => {
 
     const res = await request(app)
       .post('/hint')
-      .send({ description: 'Add header', userInput: '<div></div>', userId: 'user_123', tests: [{ text: 'test', failed: true }] })
+      .send({ 
+        description: 'Add header', 
+        userInput: '<div></div>', 
+        seed: '<html><body></body></html>',
+        userId: 'user_123', 
+        hints: ['Your element should have an opening tag.'] 
+      })
       .expect(200);
 
     expect(res.body.hint).toBeDefined();
@@ -81,7 +99,13 @@ describe('POST /hint', () => {
 
     const res = await request(app)
       .post('/hint')
-      .send({ description: 'Add header', userInput: '<div></div>', userId: 'user_123', tests: [{ text: 'test', failed: true }] })
+      .send({ 
+        description: 'Add header', 
+        userInput: '<div></div>', 
+        seed: '<html><body></body></html>',
+        userId: 'user_123', 
+        hints: ['Your element should have an opening tag.'] 
+      })
       .expect(500);
 
     expect(res.body.message).toBeDefined();
