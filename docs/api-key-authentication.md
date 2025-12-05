@@ -7,7 +7,7 @@ The Librarian API uses API key authentication to secure access to the hint gener
 To generate a secure API key, run:
 
 ```bash
-npm run generate-api-key
+pnpm run generate-api-key
 ```
 
 This will output:

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Manual tests script for local development.
-# Usage: npm run test:manual
+# Usage: pnpm run test:manual
 
 BASE_URL=${BASE_URL:-http://localhost:3000}
 CONTENT_TYPE="Content-Type: application/json"

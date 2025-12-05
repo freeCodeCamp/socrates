@@ -1,7 +1,7 @@
 import { it, describe, expect } from 'vitest';
 
 // This test hits a real Ollama instance. Run locally like:
-// RUN_OLLAMA_INTEGRATION=true npm run test
+// RUN_OLLAMA_INTEGRATION=true pnpm run test
 // Ensure OLLAMA_HOST, OLLAMA_MODEL are set in your environment (.env)
 
 if (!process.env.RUN_OLLAMA_INTEGRATION) {

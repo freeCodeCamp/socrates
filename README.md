@@ -13,20 +13,20 @@ This repository hosts a TypeScript Express API which returns pedagogical hints f
 Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 Start the dev server:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Build for production and run:
 
 ```bash
-npm run build
-npm run start
+pnpm run build
+pnpm run start
 ```
 
 ### Developer commands
@@ -34,25 +34,25 @@ npm run start
 - Run in dev mode (nodemon + ts-node):
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 - Lint code (auto-fix allowed):
 
 ```bash
-npm run lint
+pnpm run lint
 ```
 
  - Format files with Prettier:
 
 ```bash
-npm run format
+pnpm run format
 ```
 
 - Run manual curl-based tests (helpful for debugging local Ollama/Redis):
 
 ```bash
-npm run test:manual
+pnpm run test:manual
 ```
 
 Create a `.env` file or copy `.env.example` for development environment variables:
@@ -69,24 +69,24 @@ Integration tests (Optional):
 # Ensure your Ollama and Redis instances are running. You can use docker-compose included in this repo:
 docker-compose up -d
 
-# (optional) or use the convenience npm script:
-npm run compose:up
+# (optional) or use the convenience pnpm script:
+pnpm run compose:up
 
 # With live services running, run integration tests:
-npm run test:integration
+pnpm run test:integration
 
 # Tear down the services after testing:
-npm run compose:down
+pnpm run compose:down
 ```
 
 Tip: If you want to run *all* tests including integration, run:
 
 ```bash
 # Unit tests (fast)
-npm run test
+pnpm run test
 
 # Integration test (optional):
-npm run test:integration
+pnpm run test:integration
 ```
 
 Default model name used for Ollama requests is `qwen2.5:7b` (see `scripts/setup-ollama.sh`).
@@ -138,7 +138,7 @@ Manual tests & helpers
 There is a `scripts/manual-tests.sh` helper script that runs a few practical `curl` examples (valid request, invalid request, rate-limiter scenario, model-fallback scenario). You can run it with:
 
 ```bash
-npm run test:manual
+pnpm run test:manual
 ```
 
 The manual-tests script demonstrates the default JSON returned by `/hint`, headers shown, and how requests behave under rate-limiting.
