@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import bodyParser from 'body-parser';
 import express from 'express';
 import request from 'supertest';
-import bodyParser from 'body-parser';
+import { beforeEach, describe, expect, it } from 'vitest';
 import rateLimiter from '../lib/rateLimiter';
 
 // Use a fake Redis-like in-memory store for tests
@@ -18,12 +18,12 @@ class FakeRedis {
       this.store[key][args[i]] = args[i + 1];
     }
   }
-  async expire(key: string, ttl: number) {
+  async expire(_key: string, _ttl: number) {
     // ignore TTL for fake redis
     return 1;
   }
   // Provide eval to run the Lua logic, recreated in JS for tests
-  async eval(script: string, numKeys: number, ...args: any[]) {
+  async eval(_script: string, numKeys: number, ...args: any[]) {
     // keys
     const keys = args.slice(0, numKeys);
     const argv = args.slice(numKeys);
@@ -32,7 +32,7 @@ class FakeRedis {
     const perUserRate = Number(argv[2]);
     const globalCap = Number(argv[3]);
     const globalRate = Number(argv[4]);
-    const ttl = Number(argv[5]);
+    const _ttl = Number(argv[5]);
 
     const [userKey, globalKey] = keys;
 
@@ -69,21 +69,21 @@ class FakeRedis {
 
     return [userAllowed, String(userRemaining), globalAllowed, String(globalRemaining)];
   }
-  async script(cmd: string, script: string) {
+  async script(_cmd: string, script: string) {
     // store script under a simple sha (just length + time for tests)
-    const sha = 'sha:' + Math.abs(script.length + Date.now()).toString();
+    const sha = `sha:${Math.abs(script.length + Date.now()).toString()}`;
     // map sha->script not used further in fake, but helpful if evalsha invoked with the string
-    this.store['__scripts__'] = this.store['__scripts__'] || {} as any;
-    (this.store['__scripts__'] as any)[sha] = script;
+    this.store.__scripts__ = this.store.__scripts__ || ({} as any);
+    (this.store.__scripts__ as any)[sha] = script;
     return sha;
   }
   async evalsha(sha: string, numKeys: number, ...args: any[]) {
     // Just call eval with same args; verify script exists
-    if (!this.store['__scripts__'] || !(this.store['__scripts__'] as any)[sha]) {
+    if (!this.store.__scripts__ || !(this.store.__scripts__ as any)[sha]) {
       throw new Error('NOSCRIPT No matching script. Please use EVAL.');
     }
     // call eval with same behavior
-    return this.eval((this.store['__scripts__'] as any)[sha], numKeys, ...args);
+    return this.eval((this.store.__scripts__ as any)[sha], numKeys, ...args);
   }
 }
 
@@ -96,7 +96,9 @@ describe('rateLimiter', () => {
     app.use(bodyParser.json());
     redisClient = new FakeRedis();
     // bind to /hint with per-user cap 3/min and global 10/min for tests
-    app.post('/hint', rateLimiter({ redisClient, perUserLimit: 3, globalLimit: 10 }), (req, res) => res.json({ ok: true }));
+    app.post('/hint', rateLimiter({ redisClient, perUserLimit: 3, globalLimit: 10 }), (_req, res) =>
+      res.json({ ok: true }),
+    );
   });
 
   it('allows requests up to per-user limit then blocks', async () => {
@@ -116,10 +118,17 @@ describe('rateLimiter', () => {
     const redisClient2 = new FakeRedis();
     app = express();
     app.use(bodyParser.json());
-    app.post('/hint', rateLimiter({ redisClient: redisClient2 as any, perUserLimit: 10, globalLimit: 4 }), (req, res) => res.json({ ok: true }));
+    app.post(
+      '/hint',
+      rateLimiter({ redisClient: redisClient2 as any, perUserLimit: 10, globalLimit: 4 }),
+      (_req, res) => res.json({ ok: true }),
+    );
 
     for (let i = 0; i < 4; i++) {
-      await request(app).post('/hint').send({ userId: `u${i}` }).expect(200);
+      await request(app)
+        .post('/hint')
+        .send({ userId: `u${i}` })
+        .expect(200);
     }
     const r = await request(app).post('/hint').send({ userId: 'uX' }).expect(429);
     expect(r.body.message).toContain('Too many requests');

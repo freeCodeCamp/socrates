@@ -10,8 +10,11 @@
     "dev": "nodemon",
     "build": "tsc -p .",
     "start": "node dist/index.js",
-    "lint": "eslint 'src/**/*.{ts,tsx}' --fix || true",
-    "format": "prettier --write 'src/**/*.{ts,tsx,json,md,js}'",
+    "lint": "biome check --write .",
+    "lint:legacy": "eslint 'src/**/*.{ts,tsx}' --fix || true",
+    "format": "biome format --write .",
+    "format:legacy": "prettier --write 'src/**/*.{ts,tsx,json,md,js}'",
+    "check": "biome check .",
     "clean": "rm -rf dist",
     "test": "vitest run",
     "test:integration": "RUN_OLLAMA_INTEGRATION=true vitest run src/__tests__/ollamaClient.integration.test.ts src/__tests__/hintRoute.integration.test.ts",
@@ -34,6 +37,8 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.3.8",
+    "@types/body-parser": "^1.19.6",
     "@types/chai": "^4.3.4",
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.17",

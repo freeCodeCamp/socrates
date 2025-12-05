@@ -1,12 +1,12 @@
+import type { NextFunction, Request, Response } from 'express';
 import morgan from 'morgan';
-import { Request, Response, NextFunction } from 'express';
 import { logger } from '../config/logger';
 
 // configure morgan to write logs to winston
 export const requestLogger = morgan('combined', {
   stream: {
-    write: (message: string) => logger.info(message.trim())
-  }
+    write: (message: string) => logger.info(message.trim()),
+  },
 });
 
 export function simpleLogger(req: Request, res: Response, next: NextFunction) {

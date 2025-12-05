@@ -4,7 +4,7 @@ export interface HintRequest {
   userInput: string;
   seed: string;
   hints?: string[];
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface HintResponse {

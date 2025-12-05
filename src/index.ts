@@ -1,14 +1,14 @@
-import express, { Application, Request, Response } from 'express';
-import helmet from 'helmet';
+import * as bodyParser from 'body-parser';
 import cors from 'cors';
-import bodyParser from 'body-parser';
-import { PORT, ALLOWED_ORIGINS, NODE_ENV } from './config/env';
+import express, { type Application, type Request, type Response } from 'express';
+import helmet from 'helmet';
+import { ALLOWED_ORIGINS, NODE_ENV, PORT } from './config/env';
+import { logger } from './config/logger';
+import rateLimiter from './lib/rateLimiter';
+import { errorHandler } from './middleware/errorHandler';
+import { requestLogger, simpleLogger } from './middleware/logger';
 import healthRouter from './routes/health';
 import hintRouter from './routes/hint';
-import rateLimiter from './lib/rateLimiter';
-import { requestLogger , simpleLogger } from './middleware/logger';
-import { errorHandler } from './middleware/errorHandler';
-import { logger } from './config/logger';
 
 const app: Application = express();
 
@@ -18,9 +18,10 @@ app.use(helmet());
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true); // allow server-to-server or curl
-    if (ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin))
+      return callback(null, true);
     callback(new Error('CORS: origin not allowed'));
-  }
+  },
 };
 
 app.use(cors(corsOptions));

@@ -1,6 +1,6 @@
 #!/usr/bin/env ts-node
 
-import { randomBytes } from 'crypto';
+import { randomBytes } from 'node:crypto';
 
 /**
  * Generate a secure random API key

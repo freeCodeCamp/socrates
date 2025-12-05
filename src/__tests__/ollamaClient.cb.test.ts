@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('axios');
 const mockedAxios = axios as unknown as { post: any };

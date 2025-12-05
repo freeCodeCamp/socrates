@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
-import redis from '../config/redis';
-import { PER_USER_LIMIT, GLOBAL_LIMIT } from '../config/env';
+import fs from 'node:fs';
+import path from 'node:path';
+import type { NextFunction, Request, Response } from 'express';
+import { GLOBAL_LIMIT, PER_USER_LIMIT } from '../config/env';
 import { logger } from '../config/logger';
-import fs from 'fs';
-import path from 'path';
+import redis from '../config/redis';
 
 export interface RateLimiterOptions {
   redisClient?: typeof redis;
@@ -21,22 +21,30 @@ function tokensPerMs(limitPerMin: number) {
 }
 
 // The LUA script performs atomic token-bucket checks and updates for user and global buckets.
-const LUA_TOKEN_BUCKET = fs.readFileSync(path.resolve(__dirname, 'lua', 'token_bucket.lua'), 'utf8');
+const LUA_TOKEN_BUCKET = fs.readFileSync(
+  path.resolve(__dirname, 'lua', 'token_bucket.lua'),
+  'utf8',
+);
 
 let LUA_TOKEN_BUCKET_SHA: string | null = null;
 // Try to load script automatically; if it fails we still proceed and fallback to eval
 // Use any to avoid typing issues in types for script() - accept that ioredis has various overloads.
-(redis as any).script('load', LUA_TOKEN_BUCKET).then((sha: string) => {
-  LUA_TOKEN_BUCKET_SHA = sha;
-  logger.info('Loaded rate-limiter script into Redis with SHA: ' + sha);
-}).catch((err: any) => {
-  logger.info('Could not pre-load Lua script into Redis; will fallback to EVAL: ' + (err?.message || err));
-});
+(redis as any)
+  .script('load', LUA_TOKEN_BUCKET)
+  .then((sha: string) => {
+    LUA_TOKEN_BUCKET_SHA = sha;
+    logger.info(`Loaded rate-limiter script into Redis with SHA: ${sha}`);
+  })
+  .catch((err: any) => {
+    logger.info(
+      `Could not pre-load Lua script into Redis; will fallback to EVAL: ${err?.message || err}`,
+    );
+  });
 
 export function rateLimiterMiddleware(opts?: RateLimiterOptions) {
   const redisClient = opts?.redisClient || redis;
-  const perUserCap = (opts?.perUserLimit || PER_USER_LIMIT);
-  const globalCap = (opts?.globalLimit || GLOBAL_LIMIT);
+  const perUserCap = opts?.perUserLimit || PER_USER_LIMIT;
+  const globalCap = opts?.globalLimit || GLOBAL_LIMIT;
   const perUserRate = tokensPerMs(perUserCap);
   const globalRate = tokensPerMs(globalCap);
 
@@ -55,10 +63,16 @@ export function rateLimiterMiddleware(opts?: RateLimiterOptions) {
       let evalResultRaw: unknown;
       if (LUA_TOKEN_BUCKET_SHA) {
         try {
-          evalResultRaw = await (redisClient as any).evalsha(LUA_TOKEN_BUCKET_SHA, 2, userKey, globalKey, ...args);
+          evalResultRaw = await (redisClient as any).evalsha(
+            LUA_TOKEN_BUCKET_SHA,
+            2,
+            userKey,
+            globalKey,
+            ...args,
+          );
         } catch (err: any) {
           // NOSCRIPT or other issues: fallback to EVAL
-          logger.info('EVALSHA failed, falling back to EVAL: ' + (err?.message || err));
+          logger.info(`EVALSHA failed, falling back to EVAL: ${err?.message || err}`);
           evalResultRaw = await redisClient.eval(LUA_TOKEN_BUCKET, 2, userKey, globalKey, ...args);
         }
       } else {
@@ -89,7 +103,7 @@ export function rateLimiterMiddleware(opts?: RateLimiterOptions) {
 
       return next();
     } catch (err: any) {
-      logger.warn('Rate limiter encountered an error, allowing request: ' + (err?.message || err));
+      logger.warn(`Rate limiter encountered an error, allowing request: ${err?.message || err}`);
       // Allow request through if Redis or logic fails
       return next();
     }

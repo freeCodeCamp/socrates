@@ -1,4 +1,4 @@
-import { it, describe, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // This test hits a real Ollama instance. Run locally like:
 // RUN_OLLAMA_INTEGRATION=true pnpm run test

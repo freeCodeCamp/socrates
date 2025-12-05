@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import buildPrompt from '../lib/promptBuilder';
 
 describe('buildPrompt', () => {
@@ -8,7 +8,7 @@ describe('buildPrompt', () => {
       userInput: '<div></div>',
       seed: '<html><body></body></html>',
       hints: 'Your element should have an opening tag.',
-      userId: '123'
+      userId: '123',
     } as any;
 
     const res = buildPrompt(sanitized);
@@ -27,7 +27,7 @@ describe('buildPrompt', () => {
       description: longDescription,
       userInput: 'U',
       seed: 'S',
-      hints: 'H'
+      hints: 'H',
     } as any;
 
     expect(() => buildPrompt(sanitized)).toThrow();

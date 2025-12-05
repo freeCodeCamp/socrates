@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import axios from 'axios';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('axios');
 const mockedAxios = axios as unknown as { post: any };
@@ -14,8 +14,10 @@ describe('generateFromOllama', () => {
     process.env.OLLAMA_TIMEOUT_MS = '1000';
     // Re-import module so it picks up test env values
     // dynamic import with cache bust to pick up changed env
-    const { generateFromOllama } = await import('../lib/ollamaClient?cacheBust=' + Date.now());
-    mockedAxios.post = vi.fn().mockResolvedValue({ data: { choices: [{ message: { content: 'A helpful hint' } }], model: 'llama' } });
+    const { generateFromOllama } = await import(`../lib/ollamaClient?cacheBust=${Date.now()}`);
+    mockedAxios.post = vi.fn().mockResolvedValue({
+      data: { choices: [{ message: { content: 'A helpful hint' } }], model: 'llama' },
+    });
     const res = await generateFromOllama('foo');
     expect(res.hint).toBe('A helpful hint');
     expect(res.model_used).toBe('llama');
@@ -26,9 +28,11 @@ describe('generateFromOllama', () => {
     process.env.OLLAMA_MAX_RETRIES = '2';
     process.env.OLLAMA_TIMEOUT_MS = '200';
     process.env.OLLAMA_BACKOFF_BASE_MS = '1';
-    const { generateFromOllama } = await import('../lib/ollamaClient?cacheBust=' + Date.now());
+    const { generateFromOllama } = await import(`../lib/ollamaClient?cacheBust=${Date.now()}`);
     const fail = vi.fn().mockRejectedValue(new Error('ECONNRESET'));
-    const success = vi.fn().mockResolvedValue({ data: { text: 'plain text response', model: 'llama' } });
+    const success = vi
+      .fn()
+      .mockResolvedValue({ data: { text: 'plain text response', model: 'llama' } });
     mockedAxios.post = vi.fn().mockImplementationOnce(fail).mockImplementationOnce(success);
 
     const res = await generateFromOllama('foo');
@@ -39,7 +43,7 @@ describe('generateFromOllama', () => {
     process.env.OLLAMA_MAX_RETRIES = '2';
     process.env.OLLAMA_TIMEOUT_MS = '50';
     process.env.OLLAMA_BACKOFF_BASE_MS = '1';
-    const { generateFromOllama } = await import('../lib/ollamaClient?cacheBust=' + Date.now());
+    const { generateFromOllama } = await import(`../lib/ollamaClient?cacheBust=${Date.now()}`);
     mockedAxios.post = vi.fn().mockRejectedValue(new Error('oom'));
     await expect(generateFromOllama('foo')).rejects.toThrow();
   });
@@ -47,7 +51,7 @@ describe('generateFromOllama', () => {
   it('concatenates JSONL streaming responses into a single hint string', async () => {
     process.env.OLLAMA_MAX_RETRIES = '1';
     process.env.OLLAMA_TIMEOUT_MS = '1000';
-    const { generateFromOllama } = await import('../lib/ollamaClient?cacheBust=' + Date.now());
+    const { generateFromOllama } = await import(`../lib/ollamaClient?cacheBust=${Date.now()}`);
     const jsonl = '{"response":"It"}\n{"response":" looks"}\n{"response":" great"}';
     mockedAxios.post = vi.fn().mockResolvedValue({ data: jsonl });
     const res = await generateFromOllama('foo');

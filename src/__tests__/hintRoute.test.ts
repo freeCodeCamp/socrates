@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import request from 'supertest';
-import express from 'express';
 import bodyParser from 'body-parser';
+import express from 'express';
+import request from 'supertest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the API_KEY before importing routes
 vi.mock('../config/env', async () => {
@@ -15,9 +15,7 @@ vi.mock('../config/env', async () => {
 vi.mock('../lib/ollamaClient');
 
 import { generateFromOllama } from '../lib/ollamaClient';
-
 import hintRouter from '../routes/hint';
-import { logger } from '../config/logger';
 
 describe('POST /hint', () => {
   let app: express.Express;
@@ -27,19 +25,24 @@ describe('POST /hint', () => {
     app.use(bodyParser.json());
     app.use('/hint', hintRouter);
     // simple error handler
-    app.use((err: any, _req: any, res: any, _next: any) => res.status(err.status || 500).json({ message: err.message }));
+    app.use((err: any, _req: any, res: any, _next: any) =>
+      res.status(err.status || 500).json({ message: err.message }),
+    );
   });
 
   it('returns generated hint for valid request (JSON default)', async () => {
-    (generateFromOllama as any).mockResolvedValue({ hint: 'Focus on closing tags', model_used: 'qwen2.5:7b' });
+    (generateFromOllama as any).mockResolvedValue({
+      hint: 'Focus on closing tags',
+      model_used: 'qwen2.5:7b',
+    });
     const res = await request(app)
       .post('/hint')
-      .send({ 
-        description: 'Add header', 
-        userInput: '<div></div>', 
+      .send({
+        description: 'Add header',
+        userInput: '<div></div>',
         seed: '<html><body></body></html>',
-        userId: 'user_123', 
-        hints: ['Your element should have an opening tag.'] 
+        userId: 'user_123',
+        hints: ['Your element should have an opening tag.'],
       })
       .expect(200);
 
@@ -55,12 +58,12 @@ describe('POST /hint', () => {
     const res = await request(app)
       .post('/hint')
       .set('Accept', 'application/json')
-      .send({ 
-        description: 'Add header', 
-        userInput: '<div></div>', 
+      .send({
+        description: 'Add header',
+        userInput: '<div></div>',
         seed: '<html><body></body></html>',
-        userId: 'user_123', 
-        hints: ['Your element should have an opening tag.'] 
+        userId: 'user_123',
+        hints: ['Your element should have an opening tag.'],
       })
       .expect(200);
 
@@ -75,16 +78,18 @@ describe('POST /hint', () => {
   });
 
   it('returns fallback hint when model is unavailable', async () => {
-    (generateFromOllama as any).mockRejectedValue(new (await import('../errors/modelUnavailableError')).ModelUnavailableError('cb open'));
+    (generateFromOllama as any).mockRejectedValue(
+      new (await import('../errors/modelUnavailableError')).ModelUnavailableError('cb open'),
+    );
 
     const res = await request(app)
       .post('/hint')
-      .send({ 
-        description: 'Add header', 
-        userInput: '<div></div>', 
+      .send({
+        description: 'Add header',
+        userInput: '<div></div>',
         seed: '<html><body></body></html>',
-        userId: 'user_123', 
-        hints: ['Your element should have an opening tag.'] 
+        userId: 'user_123',
+        hints: ['Your element should have an opening tag.'],
       })
       .expect(200);
 
@@ -99,12 +104,12 @@ describe('POST /hint', () => {
 
     const res = await request(app)
       .post('/hint')
-      .send({ 
-        description: 'Add header', 
-        userInput: '<div></div>', 
+      .send({
+        description: 'Add header',
+        userInput: '<div></div>',
         seed: '<html><body></body></html>',
-        userId: 'user_123', 
-        hints: ['Your element should have an opening tag.'] 
+        userId: 'user_123',
+        hints: ['Your element should have an opening tag.'],
       })
       .expect(500);
 
