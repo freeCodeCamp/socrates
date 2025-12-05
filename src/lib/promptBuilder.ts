@@ -1,6 +1,6 @@
-import { SanitizedRequest } from '../types/sanitizer';
-import { SYSTEM_PROMPT, USER_PROMPT_TEMPLATE, MAX_PROMPT_CHARS } from '../config/prompts';
+import { MAX_PROMPT_CHARS, SYSTEM_PROMPT, USER_PROMPT_TEMPLATE } from '../config/prompts';
 import { PromptSizeError } from '../errors/promptSizeError';
+import type { SanitizedRequest } from '../types/sanitizer';
 
 function interpolate(template: string, values: Record<string, string | undefined>) {
   let out = template;

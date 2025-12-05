@@ -1,12 +1,12 @@
 import axios from 'axios';
 import {
+  MODEL_CB_COOLDOWN_MS,
+  MODEL_CB_FAILURES,
+  OLLAMA_BACKOFF_BASE_MS,
   OLLAMA_HOST,
+  OLLAMA_MAX_RETRIES,
   OLLAMA_MODEL,
   OLLAMA_TIMEOUT_MS,
-  OLLAMA_MAX_RETRIES,
-  OLLAMA_BACKOFF_BASE_MS,
-  MODEL_CB_FAILURES,
-  MODEL_CB_COOLDOWN_MS,
 } from '../config/env';
 import { logger } from '../config/logger';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
@@ -41,7 +41,7 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
         },
         {
           timeout: OLLAMA_TIMEOUT_MS,
-        }
+        },
       );
 
       // Ollama's response shape may include `choices` or plain text; try common fields
@@ -53,8 +53,7 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
         if (obj.output?.[0]?.content) return obj.output[0].content;
         if (obj.response) return obj.response;
         if (obj.text) return obj.text;
-        if (obj.choices && obj.choices[0] && obj.choices[0].message)
-          return obj.choices[0].message.content;
+        if (obj.choices?.[0]?.message) return obj.choices[0].message.content;
         // Ollama streaming chunk may embed response under `content` inside other fields
         if (obj.content) return obj.content;
         return null;
@@ -82,7 +81,7 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
                   const p = JSON.parse(line);
                   const t = extractTextFromObject(p);
                   if (t) parts.push(t);
-                } catch (e) {
+                } catch (_e) {
                   // not JSON, ignore
                 }
               }
@@ -90,7 +89,7 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
               else hint = data;
             }
           }
-        } catch (e) {
+        } catch (_e) {
           // Not a single JSON object - try JSONL or plain text
           const lines = data
             .split(/\r?\n/)
@@ -102,7 +101,7 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
               const p = JSON.parse(line);
               const t = extractTextFromObject(p);
               if (t) parts.push(t);
-            } catch (err) {
+            } catch (_err) {
               // not JSON, skip
             }
           }
@@ -110,8 +109,7 @@ export async function generateFromOllama(prompt: string): Promise<OllamaResponse
           else hint = data;
         }
       } else if (data.output?.[0]?.content) hint = data.output[0].content;
-      else if (data.choices && data.choices[0] && data.choices[0].message)
-        hint = data.choices[0].message.content;
+      else if (data.choices?.[0]?.message) hint = data.choices[0].message.content;
       else if (data.text) hint = data.text;
       else hint = JSON.stringify(data).slice(0, 1000);
 

@@ -1,7 +1,7 @@
-import { Router, Request, Response } from 'express';
-import { ENABLE_EXTENDED_HEALTH , OLLAMA_HOST } from '../config/env';
-import redisClient from '../config/redis';
 import axios from 'axios';
+import { type Request, type Response, Router } from 'express';
+import { ENABLE_EXTENDED_HEALTH, OLLAMA_HOST } from '../config/env';
+import redisClient from '../config/redis';
 
 const router = Router();
 
@@ -24,7 +24,7 @@ router.get('/', (_req: Request, res: Response) => {
       } catch (e: any) {
         return { ollama: 'error', error: e?.message };
       }
-    })()
+    })(),
   ]).then((results) => {
     const data = { status: 'ok', uptime: process.uptime(), checks: results };
     res.json(data);

@@ -1,10 +1,10 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import sanitizeRequest from '../lib/sanitizer';
-import buildPrompt from '../lib/promptBuilder';
-import { generateFromOllama } from '../lib/ollamaClient';
-import { ModelUnavailableError } from '../errors/modelUnavailableError';
-import { InputValidationError } from '../errors/inputValidationError';
+import { type NextFunction, type Request, type Response, Router } from 'express';
 import { logger } from '../config/logger';
+import { InputValidationError } from '../errors/inputValidationError';
+import { ModelUnavailableError } from '../errors/modelUnavailableError';
+import { generateFromOllama } from '../lib/ollamaClient';
+import buildPrompt from '../lib/promptBuilder';
+import sanitizeRequest from '../lib/sanitizer';
 import apiKeyAuthMiddleware from '../middleware/apiKeyAuth';
 
 const router = Router();
@@ -30,13 +30,14 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     if (err instanceof InputValidationError) return next(err);
     if (err instanceof ModelUnavailableError) {
       // Provide a graceful fallback hint rather than failing hard
-      const fallbackHint = 'The hint service is temporarily unavailable. Try validating syntax, checking nesting, and reading the failing test message.';
+      const fallbackHint =
+        'The hint service is temporarily unavailable. Try validating syntax, checking nesting, and reading the failing test message.';
       res.set('X-Model-Available', 'false');
       res.set('X-Model-Available', 'false');
       res.set('X-Model-Used', 'fallback');
       return res.json({ hint: fallbackHint, model_used: 'fallback' });
     }
-    logger.error('Error in /hint: ' + (err?.message || err));
+    logger.error(`Error in /hint: ${err?.message || err}`);
     return next(err);
   }
 });

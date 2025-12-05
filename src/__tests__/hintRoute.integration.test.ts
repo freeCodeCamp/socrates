@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import request from 'supertest';
-import express from 'express';
 import bodyParser from 'body-parser';
+import express from 'express';
+import request from 'supertest';
+import { describe, expect, it } from 'vitest';
 
 // This integration test hits the real Ollama instance and the actual /hint route
 // It will also exercise rate limiter (fail-open if Redis not available)
@@ -11,7 +11,6 @@ if (!process.env.RUN_OLLAMA_INTEGRATION) {
   describe('Hint Route Integration', () => {
     it('calls /hint and returns a hint from the real model', async () => {
       // import modules dynamically to respect env vars
-      const { generateFromOllama } = await import('../lib/ollamaClient');
       const rateLimiter = (await import('../lib/rateLimiter')).default;
       const hintRouter = (await import('../routes/hint')).default;
 
@@ -26,8 +25,8 @@ if (!process.env.RUN_OLLAMA_INTEGRATION) {
         userId: 'user_123',
         hints: [
           { text: 'Your element should have an opening tag.', failed: true },
-          { text: 'Your element should have a closing tag.' }
-        ]
+          { text: 'Your element should have a closing tag.' },
+        ],
       };
 
       const res = await request(app)

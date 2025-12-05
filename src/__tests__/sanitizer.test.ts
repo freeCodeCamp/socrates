@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import sanitizeRequest from '../lib/sanitizer';
+import { describe, expect, it } from 'vitest';
 import { InputValidationError } from '../errors/inputValidationError';
+import sanitizeRequest from '../lib/sanitizer';
 
 describe('sanitizeRequest', () => {
   it('throws when description missing', () => {
@@ -20,7 +20,11 @@ describe('sanitizeRequest', () => {
   });
 
   it('throws when userId missing', () => {
-    const raw = { description: '<p>Test</p>', userInput: '<div></div>', seed: '<html></html>' } as any;
+    const raw = {
+      description: '<p>Test</p>',
+      userInput: '<div></div>',
+      seed: '<html></html>',
+    } as any;
     expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
   });
 
@@ -33,8 +37,8 @@ describe('sanitizeRequest', () => {
       hints: [
         { text: 'Your main element should have an opening tag.', failed: false },
         { text: 'Your main element should have a closing tag.', failed: false },
-        { text: 'Your main element should be below body element.', failed: false }
-      ]
+        { text: 'Your main element should be below body element.', failed: false },
+      ],
     } as any;
 
     const s = sanitizeRequest(raw);
@@ -47,12 +51,12 @@ describe('sanitizeRequest', () => {
   });
 
   it('returns undefined hints when no hints provided', () => {
-    const raw = { 
-      description: 'D', 
-      userInput: 'U', 
-      seed: 'S', 
-      userId: 'user_123', 
-      hints: [] 
+    const raw = {
+      description: 'D',
+      userInput: 'U',
+      seed: 'S',
+      userId: 'user_123',
+      hints: [],
     } as any;
     const s = sanitizeRequest(raw);
     expect(s.hints).toBeUndefined();
@@ -70,8 +74,8 @@ describe('sanitizeRequest', () => {
         { text: '' },
         { text: 'Another valid hint', failed: true },
         undefined,
-        { text: 123 }
-      ]
+        { text: 123 },
+      ],
     } as any;
     const s = sanitizeRequest(raw);
     expect(s.hints).toBe('1. Valid hint\n2. Another valid hint (FAILED)');

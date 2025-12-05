@@ -43,10 +43,16 @@ pnpm run dev
 pnpm run lint
 ```
 
- - Format files with Prettier:
+- Format files with Biome:
 
 ```bash
 pnpm run format
+```
+
+- Check code (lint + format without writing):
+
+```bash
+pnpm run check
 ```
 
 - Run manual curl-based tests (helpful for debugging local Ollama/Redis):
