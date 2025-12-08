@@ -3,7 +3,7 @@ import { type Request, type Response, Router } from 'express';
 import { ENABLE_EXTENDED_HEALTH, OLLAMA_HOST } from '../config/env';
 import redisClient from '../config/redis';
 
-const router = Router();
+const router: Router = Router();
 
 router.get('/', (_req: Request, res: Response) => {
   if (!ENABLE_EXTENDED_HEALTH) return res.json({ status: 'ok', uptime: process.uptime() });

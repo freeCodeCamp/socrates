@@ -7,7 +7,7 @@ import buildPrompt from '../lib/promptBuilder';
 import sanitizeRequest from '../lib/sanitizer';
 import apiKeyAuthMiddleware from '../middleware/apiKeyAuth';
 
-const router = Router();
+const router: Router = Router();
 
 // Apply API key authentication to all routes in this router
 router.use(apiKeyAuthMiddleware);
