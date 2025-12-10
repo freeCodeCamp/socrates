@@ -2,6 +2,7 @@ import { type NextFunction, type Request, type Response, Router } from 'express'
 import { logger } from '../config/logger';
 import { InputValidationError } from '../errors/inputValidationError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
+import sanitizeHintOutput from '../lib/hintSanitizer';
 import { generateFromOllama } from '../lib/ollamaClient';
 import buildPrompt from '../lib/promptBuilder';
 import sanitizeRequest from '../lib/sanitizer';
@@ -23,9 +24,12 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     // Call Ollama
     const result = await generateFromOllama(built.fullPrompt);
 
+    // Sanitize the hint output
+    const sanitizedHint = sanitizeHintOutput(result.hint);
+
     // Always return JSON with a concatenated hint string
     res.set('X-Model-Used', result.model_used || 'unknown');
-    res.json({ hint: result.hint, model_used: result.model_used });
+    res.json({ hint: sanitizedHint, model_used: result.model_used });
   } catch (err: any) {
     if (err instanceof InputValidationError) return next(err);
     if (err instanceof ModelUnavailableError) {
