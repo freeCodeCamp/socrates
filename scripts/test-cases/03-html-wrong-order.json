@@ -8,7 +8,10 @@
     "description": "Below the h1 element, add a p element with this text: Browse our collection of amazing books!",
     "hints": [
       { "text": "You should have a p element.", "failed": false },
-      { "text": "Your p element's text should be: Browse our collection of amazing books!", "failed": false },
+      {
+        "text": "Your p element's text should be: Browse our collection of amazing books!",
+        "failed": false
+      },
       { "text": "Your p element should be below your h1 element.", "failed": true }
     ]
   }

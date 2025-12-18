@@ -9,7 +9,10 @@
     "hints": [
       { "text": "Your p element should have an opening tag.", "failed": true },
       { "text": "Your p element should have a closing tag.", "failed": true },
-      { "text": "Your p element's text should be Everyone loves cute cats online!", "failed": true },
+      {
+        "text": "Your p element's text should be Everyone loves cute cats online!",
+        "failed": true
+      },
       { "text": "Your p element should be below the h2 element.", "failed": true }
     ]
   }

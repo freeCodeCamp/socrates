@@ -13,16 +13,18 @@ describe('buildPrompt', () => {
 
     const res = buildPrompt(sanitized);
     expect(res.fullPrompt).toContain('freeCodeCamp teaching assistant');
-    expect(res.fullPrompt).toContain('<challenge>');
+    expect(res.fullPrompt).toContain('<challenge_description>');
     expect(res.fullPrompt).toContain('Do X');
     expect(res.fullPrompt).toContain('<student_code>');
     expect(res.fullPrompt).toContain('<failing_test>');
-    expect(res.fullPrompt).toContain('2 sentences');
+    expect(res.fullPrompt).toContain('Sentence 1');
+    expect(res.fullPrompt).toContain('Sentence 2');
     expect(res.length).toBe(res.fullPrompt.length);
   });
 
   it('throws PromptSizeError when prompt exceeds MAX_PROMPT_CHARS', () => {
-    const longDescription = 'D'.repeat(13000);
+    // MAX_PROMPT_CHARS is 32000, system prompt is ~11500, so we need >20500 chars of user content
+    const longDescription = 'D'.repeat(25000);
     const sanitized = {
       description: longDescription,
       userInput: 'U',

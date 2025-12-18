@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import {
   GROQ_API_KEY,
   GROQ_BACKOFF_BASE_MS,
@@ -10,6 +10,7 @@ import {
 } from '../config/env';
 import { logger } from '../config/logger';
 import { SYSTEM_PROMPT } from '../config/prompts';
+import { GroqApiError } from '../errors/groqApiError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
 
 export interface GroqResponse {
@@ -20,21 +21,27 @@ export interface GroqResponse {
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export async function generateFromGroq(userPrompt: string): Promise<GroqResponse> {
-  let attempt = 0;
-  let lastErr: any;
   const now = Date.now();
+  let lastError: Error | null = null;
 
   // Circuit breaker state (module-scoped)
-  if (!(global as any)._groqCircuit) {
-    (global as any)._groqCircuit = { failures: 0, openedUntil: 0 };
+  interface CircuitBreaker {
+    failures: number;
+    openedUntil: number;
   }
-  const cb = (global as any)._groqCircuit as { failures: number; openedUntil: number };
+
+  if (!(global as Record<string, unknown>)._groqCircuit) {
+    (global as Record<string, unknown>)._groqCircuit = { failures: 0, openedUntil: 0 };
+  }
+  const cb = (global as Record<string, unknown>)._groqCircuit as CircuitBreaker;
 
   if (cb.openedUntil && cb.openedUntil > now) {
     throw new ModelUnavailableError('Model circuit breaker is open');
   }
 
-  while (attempt <= GROQ_MAX_RETRIES) {
+  // Try with exponential backoff
+  const maxRetries = GROQ_MAX_RETRIES();
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const res = await axios.post(
         GROQ_API_URL,
@@ -52,7 +59,7 @@ export async function generateFromGroq(userPrompt: string): Promise<GroqResponse
             Authorization: `Bearer ${GROQ_API_KEY}`,
             'Content-Type': 'application/json',
           },
-          timeout: GROQ_TIMEOUT_MS,
+          timeout: GROQ_TIMEOUT_MS(),
         },
       );
 
@@ -64,29 +71,85 @@ export async function generateFromGroq(userPrompt: string): Promise<GroqResponse
       cb.failures = 0;
 
       return { hint: hint.trim(), model_used };
-    } catch (err: any) {
-      lastErr = err;
-      attempt++;
-      logger.warn(`Groq request failed (attempt ${attempt}): ${err?.message || err}`);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
 
-      // Exponential backoff with jitter
-      const backoff = Math.min(GROQ_BACKOFF_BASE_MS * 2 ** attempt, 5000);
-      const jitter = Math.floor(Math.random() * 200);
-      await new Promise((resolve) => setTimeout(resolve, backoff + jitter));
+      // Determine if error is retryable - only for non-retryable errors, we throw immediately
+      if (!isRetryableError(lastError)) {
+        handleNonRetryableError(lastError);
+        throw createGroqError(lastError);
+      }
+
+      logger.warn(`Groq request failed (attempt ${attempt}/${maxRetries}): ${lastError.message}`);
+
+      // Exponential backoff with jitter (only for last retry)
+      if (attempt < GROQ_MAX_RETRIES()) {
+        const backoff = Math.min(GROQ_BACKOFF_BASE_MS() * 2 ** attempt, 5000);
+        const jitter = Math.floor(Math.random() * 200);
+        await new Promise((resolve) => setTimeout(resolve, backoff + jitter));
+      }
     }
   }
 
-  logger.error(`Groq generate attempts failed: ${lastErr?.message || lastErr}`);
+  // All retries failed - handle circuit breaker
+  const finalError = lastError || new Error('Groq generate failed');
+  handleAllRetriesFailed(finalError, cb);
+  throw finalError;
+}
 
-  // Increment failure count and possibly open circuit
+function isRetryableError(err: Error): boolean {
+  if (err instanceof AxiosError) {
+    const status = err.response?.status;
+
+    // Retry on network errors, timeouts, and 5xx errors
+    if (!status || status >= 500 || status === 429) return true;
+
+    // Don't retry on client errors (4xx) except rate limit (429)
+    if (status >= 400 && status < 500 && status !== 429) return false;
+  }
+
+  // Retry on timeout and network errors
+  if (err.message.includes('timeout') || err.message.includes('ECONN')) return true;
+
+  // Default to retry for unknown errors
+  return true;
+}
+
+function handleNonRetryableError(err: Error): void {
+  logger.error(`Non-retryable Groq error: ${err.message}`);
+
+  // Don't increment circuit breaker for non-retryable errors (authentication, bad request, etc.)
+  // These are application/configuration issues, not service availability issues
+}
+
+function handleAllRetriesFailed(err: Error, cb: { failures: number; openedUntil: number }): void {
+  logger.error(`All Groq retry attempts failed: ${err.message}`);
+
+  // Increment failure count and possibly open circuit breaker
   cb.failures = (cb.failures || 0) + 1;
   if (cb.failures >= MODEL_CB_FAILURES) {
     cb.openedUntil = Date.now() + MODEL_CB_COOLDOWN_MS;
     cb.failures = 0;
     logger.warn(`Groq circuit breaker opened until ${new Date(cb.openedUntil).toISOString()}`);
   }
+}
 
-  throw lastErr || new ModelUnavailableError('Groq generate failed');
+function createGroqError(err: Error): Error {
+  if (err instanceof AxiosError) {
+    const status = err.response?.status || 0;
+    const isRetryable = isRetryableError(err);
+    const message = `Groq API error (${status}): ${err.message}`;
+
+    return new GroqApiError(message, status, isRetryable, err);
+  }
+
+  // For non-axios errors, check if they're retryable
+  const isRetryable = isRetryableError(err);
+  if (isRetryable) {
+    return new GroqApiError(`Groq request error: ${err.message}`, 503, true, err);
+  }
+
+  return err;
 }
 
 export default generateFromGroq;

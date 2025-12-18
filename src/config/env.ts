@@ -10,15 +10,12 @@ export const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*').split(',').m
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 export const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
-export const GROQ_TIMEOUT_MS = process.env.GROQ_TIMEOUT_MS
-  ? Number(process.env.GROQ_TIMEOUT_MS)
-  : 30000;
-export const GROQ_MAX_RETRIES = process.env.GROQ_MAX_RETRIES
-  ? Number(process.env.GROQ_MAX_RETRIES)
-  : 2;
-export const GROQ_BACKOFF_BASE_MS = process.env.GROQ_BACKOFF_BASE_MS
-  ? Number(process.env.GROQ_BACKOFF_BASE_MS)
-  : 500;
+export const GROQ_TIMEOUT_MS = () =>
+  process.env.GROQ_TIMEOUT_MS ? Number(process.env.GROQ_TIMEOUT_MS) : 30000;
+export const GROQ_BACKOFF_BASE_MS = () =>
+  process.env.GROQ_BACKOFF_BASE_MS ? Number(process.env.GROQ_BACKOFF_BASE_MS) : 500;
+export const GROQ_MAX_RETRIES = () =>
+  process.env.GROQ_MAX_RETRIES ? Number(process.env.GROQ_MAX_RETRIES) : 2;
 export const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 export const PER_USER_LIMIT = process.env.PER_USER_LIMIT ? Number(process.env.PER_USER_LIMIT) : 10; // requests per minute
 export const GLOBAL_LIMIT = process.env.GLOBAL_LIMIT ? Number(process.env.GLOBAL_LIMIT) : 1000; // requests per minute

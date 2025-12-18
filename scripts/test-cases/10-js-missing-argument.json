@@ -8,7 +8,10 @@
     "description": "Write an arrow function named add that takes two parameters a and b and returns their sum. Then call the function with arguments 3 and 4.",
     "hints": [
       { "text": "The function should be called with two arguments.", "failed": true },
-      { "text": "Both parameters a and b should be passed when calling the function.", "failed": true },
+      {
+        "text": "Both parameters a and b should be passed when calling the function.",
+        "failed": true
+      },
       { "text": "The function call should use add(3, 4).", "failed": true }
     ]
   }
