@@ -2,7 +2,19 @@
 
 # test-hints.sh
 # Runs hint API tests using JSON test case files
-# Usage: pnpm run test:manual [test-file.json]
+# Usage: pnpm run test:manual [test-file.json] [--report]
+# 
+# Environment Variables:
+#   BASE_URL      - API base URL (default: http://localhost:3000)
+#   API_KEY       - API key for authentication (default: secret)
+#   REQUEST_DELAY - Delay between requests in seconds (default: 1)
+#
+# Examples:
+#   pnpm run test:manual                        # Run all tests with 1s delay
+#   REQUEST_DELAY=2 pnpm run test:manual        # Run all tests with 2s delay
+#   REQUEST_DELAY=0 pnpm run test:manual        # Run all tests without delay
+#   pnpm run test:manual 01-html-wrong-text.json  # Run single test
+#   pnpm run test:manual --report               # Run all tests and generate report
 
 # Don't exit on error - we handle errors in run_test
 set -o pipefail
@@ -12,6 +24,7 @@ TEST_CASES_DIR="${SCRIPT_DIR}/test-cases"
 BASE_URL="${BASE_URL:-http://localhost:3000}"
 API_KEY="${API_KEY:-secret}"
 OUTPUT_FILE="${SCRIPT_DIR}/test-results.md"
+REQUEST_DELAY="${REQUEST_DELAY:-1}"  # Delay between requests in seconds (default: 1s)
 
 # Colors for output
 RED='\033[0;31m'
@@ -26,6 +39,7 @@ print_header() {
     echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
     echo -e "  Base URL: ${BASE_URL}"
     echo -e "  API Key:  ${API_KEY:0:8}..."
+    echo -e "  Delay:    ${REQUEST_DELAY}s between requests"
     echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}\n"
 }
 
@@ -64,9 +78,16 @@ run_test() {
     local hint=$(echo "$response" | jq -r '.hint // "ERROR: No hint returned"')
     local model=$(echo "$response" | jq -r '.model_used // "unknown"')
     local error=$(echo "$response" | jq -r '.message // empty')
+    local status=$(echo "$response" | jq -r '.status // empty')
 
     if [ -n "$error" ]; then
-        echo -e "  ${RED}✗ Error: ${error}${NC}\n"
+        if [ "$status" = "429" ] || [[ "$error" == *"rate"* ]]; then
+            echo -e "  ${YELLOW}⚠️  Rate limited: ${error}${NC}"
+            echo -e "  ${BLUE}💡 Try increasing REQUEST_DELAY (current: ${REQUEST_DELAY}s)${NC}\n"
+        else
+            echo -e "  ${RED}✗ Error: ${error}${NC}"
+        fi
+        echo -e "  Response: ${response}\n"
         return 1
     else
         echo -e "  ${GREEN}✓ Hint:${NC} ${hint}"
@@ -78,18 +99,28 @@ run_test() {
 run_all_tests() {
     local passed=0
     local failed=0
+    local test_count=0
 
     for test_file in "${TEST_CASES_DIR}"/*.json; do
         if [ -f "$test_file" ]; then
+            ((test_count++))
+            echo -e "\n${YELLOW}Running test ${test_count}...${NC}"
+            
             if run_test "$test_file"; then
                 ((passed++))
             else
                 ((failed++))
             fi
+            
+            # Add delay between requests (except after the last test)
+            if [ "$REQUEST_DELAY" -gt 0 ] && [ "${test_count}" -lt $(ls -1 "${TEST_CASES_DIR}"/*.json 2>/dev/null | wc -l) ]; then
+                echo -e "${BLUE}⏳ Waiting ${REQUEST_DELAY}s before next request...${NC}"
+                sleep "$REQUEST_DELAY"
+            fi
         fi
     done
 
-    echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
+    echo -e "\n${BLUE}════════════════════════════════════════════════════════════════${NC}"
     echo -e "  Results: ${GREEN}${passed} passed${NC}, ${RED}${failed} failed${NC}"
     echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
 }
@@ -107,8 +138,14 @@ generate_report() {
         echo "---"
         echo ""
 
+        local report_count=0
+        local total_tests=$(ls -1 "${TEST_CASES_DIR}"/*.json 2>/dev/null | wc -l)
+
         for test_file in "${TEST_CASES_DIR}"/*.json; do
             if [ -f "$test_file" ]; then
+                ((report_count++))
+                echo -e "${YELLOW}Generating report for test ${report_count}/${total_tests}...${NC}"
+                
                 local test_name=$(jq -r '.name' "$test_file")
                 local challenge=$(jq -r '.challenge' "$test_file")
                 local mistake=$(jq -r '.mistake' "$test_file")
@@ -140,6 +177,11 @@ generate_report() {
                 echo ""
                 echo "---"
                 echo ""
+
+                # Add delay between report generation requests
+                if [ "$REQUEST_DELAY" -gt 0 ] && [ "${report_count}" -lt "$total_tests" ]; then
+                    sleep "$REQUEST_DELAY"
+                fi
             fi
         done
     } > "$OUTPUT_FILE"
