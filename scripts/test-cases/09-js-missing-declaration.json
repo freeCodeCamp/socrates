@@ -1,0 +1,15 @@
+{
+  "name": "JavaScript: Missing variable declaration",
+  "challenge": "JS Basics - Declare Variables",
+  "mistake": "Student used variable without declaring it first",
+  "request": {
+    "userId": "test_js_001",
+    "userInput": "console.log(count);",
+    "description": "Declare a variable named count using const and assign it the value 5. Then log the variable to the console.",
+    "hints": [
+      { "text": "You should declare a variable named count.", "failed": true },
+      { "text": "The variable should be declared with const.", "failed": true },
+      { "text": "The variable should be assigned the value 5.", "failed": true }
+    ]
+  }
+}

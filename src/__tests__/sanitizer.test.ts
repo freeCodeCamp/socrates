@@ -28,7 +28,7 @@ describe('sanitizeRequest', () => {
     expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
   });
 
-  it('concatenates hints array into single string', () => {
+  it('extracts only the first failing test hint', () => {
     const raw = {
       description: '<p>foo</p>',
       userInput: '<div>bar</div>',
@@ -36,8 +36,8 @@ describe('sanitizeRequest', () => {
       userId: 'user_123',
       hints: [
         { text: 'Your main element should have an opening tag.', failed: false },
-        { text: 'Your main element should have a closing tag.', failed: false },
-        { text: 'Your main element should be below body element.', failed: false },
+        { text: 'Your main element should have a closing tag.', failed: true },
+        { text: 'Your main element should be below body element.', failed: true },
       ],
     } as any;
 
@@ -45,9 +45,7 @@ describe('sanitizeRequest', () => {
     expect(s.description).toBe('<p>foo</p>');
     expect(s.userInput).toBe('<div>bar</div>');
     expect(s.seed).toBe('<html><body></body></html>');
-    expect(s.hints).toBeDefined();
-    expect(s.hints).toContain('Your main element should have an opening tag.');
-    expect(s.hints).toContain('Your main element should have a closing tag.');
+    expect(s.hints).toBe('Your main element should have a closing tag.');
   });
 
   it('returns undefined hints when no hints provided', () => {
@@ -62,22 +60,36 @@ describe('sanitizeRequest', () => {
     expect(s.hints).toBeUndefined();
   });
 
-  it('filters out non-string and invalid hints', () => {
+  it('returns undefined hints when no failing tests', () => {
     const raw = {
       description: 'D',
       userInput: 'U',
       seed: 'S',
       userId: 'user_123',
       hints: [
-        { text: 'Valid hint' },
-        null,
-        { text: '' },
-        { text: 'Another valid hint', failed: true },
-        undefined,
-        { text: 123 },
+        { text: 'Valid hint', failed: false },
+        { text: 'Another hint', failed: false },
       ],
     } as any;
     const s = sanitizeRequest(raw);
-    expect(s.hints).toBe('1. Valid hint\n2. Another valid hint (FAILED)');
+    expect(s.hints).toBeUndefined();
+  });
+
+  it('finds first failed hint even with invalid entries', () => {
+    const raw = {
+      description: 'D',
+      userInput: 'U',
+      seed: 'S',
+      userId: 'user_123',
+      hints: [
+        { text: 'Not failed' },
+        null,
+        { text: '', failed: true },
+        { text: 'First real failed', failed: true },
+        undefined,
+      ],
+    } as any;
+    const s = sanitizeRequest(raw);
+    expect(s.hints).toBe('First real failed');
   });
 });

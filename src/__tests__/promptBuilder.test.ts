@@ -12,12 +12,12 @@ describe('buildPrompt', () => {
     } as any;
 
     const res = buildPrompt(sanitized);
-    expect(res.fullPrompt).toContain('You are a helpful teaching assistant for freeCodeCamp');
-    expect(res.fullPrompt).toContain('Challenge Instructions');
+    expect(res.fullPrompt).toContain('freeCodeCamp teaching assistant');
+    expect(res.fullPrompt).toContain('<challenge>');
     expect(res.fullPrompt).toContain('Do X');
-    expect(res.fullPrompt).toContain('Starting Context');
-    expect(res.fullPrompt).toContain('What the Student Wrote');
-    expect(res.fullPrompt).toContain('Failing Tests/Requirements');
+    expect(res.fullPrompt).toContain('<student_code>');
+    expect(res.fullPrompt).toContain('<failing_test>');
+    expect(res.fullPrompt).toContain('2 sentences');
     expect(res.length).toBe(res.fullPrompt.length);
   });
 

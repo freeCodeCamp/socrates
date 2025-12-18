@@ -12,9 +12,9 @@ vi.mock('../config/env', async () => {
   };
 });
 
-vi.mock('../lib/ollamaClient');
+vi.mock('../lib/groqClient');
 
-import { generateFromOllama } from '../lib/ollamaClient';
+import { generateFromGroq } from '../lib/groqClient';
 import hintRouter from '../routes/hint';
 
 describe('POST /hint', () => {
@@ -31,9 +31,9 @@ describe('POST /hint', () => {
   });
 
   it('returns generated hint for valid request (JSON default)', async () => {
-    (generateFromOllama as any).mockResolvedValue({
+    (generateFromGroq as any).mockResolvedValue({
       hint: 'Focus on closing tags',
-      model_used: 'qwen2.5:7b',
+      model_used: 'llama-3.3-70b-versatile',
     });
     const res = await request(app)
       .post('/hint')
@@ -47,13 +47,16 @@ describe('POST /hint', () => {
       .expect(200);
 
     expect(res.body.hint).toBe('Focus on closing tags');
-    expect(res.body.model_used).toBe('qwen2.5:7b');
-    expect(res.headers['x-model-used']).toBe('qwen2.5:7b');
+    expect(res.body.model_used).toBe('llama-3.3-70b-versatile');
+    expect(res.headers['x-model-used']).toBe('llama-3.3-70b-versatile');
     expect(res.headers['content-type']).toMatch(/application\/json/);
   });
 
   it('returns JSON hint if Accept: application/json is requested (explicit)', async () => {
-    (generateFromOllama as any).mockResolvedValue({ hint: 'JSON hint', model_used: 'qwen2.5:7b' });
+    (generateFromGroq as any).mockResolvedValue({
+      hint: 'JSON hint',
+      model_used: 'llama-3.3-70b-versatile',
+    });
 
     const res = await request(app)
       .post('/hint')
@@ -68,7 +71,7 @@ describe('POST /hint', () => {
       .expect(200);
 
     expect(res.body.hint).toBe('JSON hint');
-    expect(res.body.model_used).toBe('qwen2.5:7b');
+    expect(res.body.model_used).toBe('llama-3.3-70b-versatile');
     expect(res.headers['content-type']).toMatch(/application\/json/);
   });
 
@@ -78,7 +81,7 @@ describe('POST /hint', () => {
   });
 
   it('returns fallback hint when model is unavailable', async () => {
-    (generateFromOllama as any).mockRejectedValue(
+    (generateFromGroq as any).mockRejectedValue(
       new (await import('../errors/modelUnavailableError')).ModelUnavailableError('cb open'),
     );
 
@@ -100,7 +103,7 @@ describe('POST /hint', () => {
   });
 
   it('returns 500 if model errors out with generic error', async () => {
-    (generateFromOllama as any).mockRejectedValue(new Error('unexpected'));
+    (generateFromGroq as any).mockRejectedValue(new Error('unexpected'));
 
     const res = await request(app)
       .post('/hint')

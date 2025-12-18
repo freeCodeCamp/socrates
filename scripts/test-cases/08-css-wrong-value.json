@@ -1,0 +1,14 @@
+{
+  "name": "CSS: Wrong property value",
+  "challenge": "CSS Basics - Fix Property Value",
+  "mistake": "Student used 20px margin instead of required 10px",
+  "request": {
+    "userId": "test_css_002",
+    "userInput": ".box { margin: 20px; }",
+    "description": "Margin controls the space outside an element. Set the margin property of the .box class to 10px on all sides.",
+    "hints": [
+      { "text": "The .box class should have a margin property.", "failed": false },
+      { "text": "The margin value should be 10px, not 20px.", "failed": true }
+    ]
+  }
+}

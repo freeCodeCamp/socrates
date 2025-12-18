@@ -3,9 +3,9 @@ import express from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 
-// This integration test hits the real Ollama instance and the actual /hint route
+// This integration test hits the real Groq API and the actual /hint route
 // It will also exercise rate limiter (fail-open if Redis not available)
-if (!process.env.RUN_OLLAMA_INTEGRATION) {
+if (!process.env.RUN_GROQ_INTEGRATION) {
   describe.skip('Hint Route Integration (skipped by default)', () => {});
 } else {
   describe('Hint Route Integration', () => {

@@ -8,16 +8,16 @@ export const NODE_ENV = process.env.NODE_ENV || 'development';
 export const isProd = NODE_ENV === 'production';
 export const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*').split(',').map((s) => s.trim());
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
-export const OLLAMA_HOST = process.env.OLLAMA_HOST || 'http://localhost:11434';
-export const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:7b';
-export const OLLAMA_TIMEOUT_MS = process.env.OLLAMA_TIMEOUT_MS
-  ? Number(process.env.OLLAMA_TIMEOUT_MS)
-  : 10000;
-export const OLLAMA_MAX_RETRIES = process.env.OLLAMA_MAX_RETRIES
-  ? Number(process.env.OLLAMA_MAX_RETRIES)
+export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+export const GROQ_TIMEOUT_MS = process.env.GROQ_TIMEOUT_MS
+  ? Number(process.env.GROQ_TIMEOUT_MS)
+  : 30000;
+export const GROQ_MAX_RETRIES = process.env.GROQ_MAX_RETRIES
+  ? Number(process.env.GROQ_MAX_RETRIES)
   : 2;
-export const OLLAMA_BACKOFF_BASE_MS = process.env.OLLAMA_BACKOFF_BASE_MS
-  ? Number(process.env.OLLAMA_BACKOFF_BASE_MS)
+export const GROQ_BACKOFF_BASE_MS = process.env.GROQ_BACKOFF_BASE_MS
+  ? Number(process.env.GROQ_BACKOFF_BASE_MS)
   : 500;
 export const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 export const PER_USER_LIMIT = process.env.PER_USER_LIMIT ? Number(process.env.PER_USER_LIMIT) : 10; // requests per minute
@@ -34,4 +34,7 @@ export const API_KEY = process.env.API_KEY || '';
 // Validate required environment variables in production
 if (isProd && !API_KEY) {
   throw new Error('API_KEY environment variable is required in production');
+}
+if (isProd && !GROQ_API_KEY) {
+  throw new Error('GROQ_API_KEY environment variable is required in production');
 }

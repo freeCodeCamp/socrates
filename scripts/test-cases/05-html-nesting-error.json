@@ -1,0 +1,15 @@
+{
+  "name": "HTML: Element outside container",
+  "challenge": "Bookstore Page - Step 13",
+  "mistake": "Student added second card outside the card-container div",
+  "request": {
+    "userId": "test_html_005",
+    "userInput": "<div class=\"card-container\"><div class=\"card\" id=\"sally-adventure-book\"><h2>Sally's SciFi Adventure</h2><p>This is an epic story.</p><button class=\"btn\">Buy Now</button></div></div><div class=\"card\"><h2>Second Book</h2></div>",
+    "description": "Now create a second book card. Add another div element with the class attribute set to card. Notice how you can reuse the same class name for multiple elements to apply consistent styling.",
+    "hints": [
+      { "text": "You should have two div elements with a class attribute having a value of card.", "failed": false },
+      { "text": "The second element with a class of card should be inside the element having a class of card-container.", "failed": true },
+      { "text": "The two elements with a class of card should be siblings.", "failed": true }
+    ]
+  }
+}

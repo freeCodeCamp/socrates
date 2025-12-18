@@ -1,0 +1,16 @@
+{
+  "name": "HTML: Missing p element",
+  "challenge": "Cat Photo App - Step 3",
+  "mistake": "Student forgot to add the p element below h2",
+  "request": {
+    "userId": "test_html_002",
+    "userInput": "<h1>CatPhotoApp</h1><h2>Cat Photos</h2>",
+    "description": "Create a p element below your h2 element and give it the following text: Everyone loves cute cats online!",
+    "hints": [
+      { "text": "Your p element should have an opening tag.", "failed": true },
+      { "text": "Your p element should have a closing tag.", "failed": true },
+      { "text": "Your p element's text should be Everyone loves cute cats online!", "failed": true },
+      { "text": "Your p element should be below the h2 element.", "failed": true }
+    ]
+  }
+}

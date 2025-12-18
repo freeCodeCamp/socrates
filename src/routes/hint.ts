@@ -2,8 +2,8 @@ import { type NextFunction, type Request, type Response, Router } from 'express'
 import { logger } from '../config/logger';
 import { InputValidationError } from '../errors/inputValidationError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
+import { generateFromGroq } from '../lib/groqClient';
 import sanitizeHintOutput from '../lib/hintSanitizer';
-import { generateFromOllama } from '../lib/ollamaClient';
 import buildPrompt from '../lib/promptBuilder';
 import sanitizeRequest from '../lib/sanitizer';
 import apiKeyAuthMiddleware from '../middleware/apiKeyAuth';
@@ -21,8 +21,8 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     // Build prompt
     const built = buildPrompt(sanitized);
 
-    // Call Ollama
-    const result = await generateFromOllama(built.fullPrompt);
+    // Call Groq
+    const result = await generateFromGroq(built.userPrompt);
 
     // Sanitize the hint output
     const sanitizedHint = sanitizeHintOutput(result.hint);

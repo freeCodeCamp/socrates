@@ -1,0 +1,15 @@
+{
+  "name": "HTML: Elements in wrong order",
+  "challenge": "Bookstore Page - Step 5",
+  "mistake": "Student placed p element above h1 instead of below",
+  "request": {
+    "userId": "test_html_003",
+    "userInput": "<p>Browse our collection of amazing books!</p><h1>XYZ Bookstore</h1>",
+    "description": "Below the h1 element, add a p element with this text: Browse our collection of amazing books!",
+    "hints": [
+      { "text": "You should have a p element.", "failed": false },
+      { "text": "Your p element's text should be: Browse our collection of amazing books!", "failed": false },
+      { "text": "Your p element should be below your h1 element.", "failed": true }
+    ]
+  }
+}

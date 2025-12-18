@@ -27,27 +27,20 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
     seed: typeof seed === 'string' ? seed.trim() : '',
   };
 
-  // Process hints array if provided - concatenate into a single string
+  // Process hints array - only include the FIRST failing test
   if (Array.isArray(hints) && hints.length > 0) {
-    const formattedHints: string[] = [];
-    let validHintIndex = 1;
-
-    for (const h of hints) {
-      if (
+    const firstFailed = hints.find(
+      (h) =>
         h !== null &&
         h !== undefined &&
         typeof h === 'object' &&
         h.text &&
-        typeof h.text === 'string'
-      ) {
-        const text = `${validHintIndex}. ${h.text.trim()}`;
-        formattedHints.push(h.failed ? `${text} (FAILED)` : text);
-        validHintIndex++;
-      }
-    }
+        typeof h.text === 'string' &&
+        h.failed === true,
+    );
 
-    if (formattedHints.length > 0) {
-      sanitized.hints = formattedHints.join('\n');
+    if (firstFailed && typeof firstFailed.text === 'string') {
+      sanitized.hints = firstFailed.text.trim();
     }
   }
 

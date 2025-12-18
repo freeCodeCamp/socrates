@@ -17,8 +17,8 @@
     "check": "biome check .",
     "clean": "rm -rf dist",
     "test": "vitest run",
-    "test:integration": "RUN_OLLAMA_INTEGRATION=true vitest run src/__tests__/ollamaClient.integration.test.ts src/__tests__/hintRoute.integration.test.ts",
-    "test:manual": "bash ./scripts/manual-tests.sh",
+    "test:integration": "RUN_GROQ_INTEGRATION=true vitest run src/__tests__/groqClient.integration.test.ts src/__tests__/hintRoute.integration.test.ts",
+    "test:manual": "bash ./scripts/test-hints.sh",
     "test:watch": "vitest",
     "generate-api-key": "ts-node scripts/generate-api-key.ts"
   },

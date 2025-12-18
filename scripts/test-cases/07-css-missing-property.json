@@ -1,0 +1,15 @@
+{
+  "name": "CSS: Missing color property",
+  "challenge": "CSS Basics - Add Style Property",
+  "mistake": "Student has font-size but forgot to add color property",
+  "request": {
+    "userId": "test_css_001",
+    "userInput": ".title { font-size: 24px; }",
+    "description": "The color property in CSS sets the text color of an element. Add a color property to the .title class and set it to blue.",
+    "hints": [
+      { "text": "Your .title class should have a color property.", "failed": true },
+      { "text": "The color property should be set to blue.", "failed": true },
+      { "text": "The property should be inside the .title class definition.", "failed": false }
+    ]
+  }
+}
