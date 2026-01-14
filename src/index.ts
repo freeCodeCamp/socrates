@@ -2,8 +2,10 @@ import * as bodyParser from 'body-parser';
 import cors from 'cors';
 import express, { type Application, type Request, type Response } from 'express';
 import helmet from 'helmet';
+import swaggerUi from 'swagger-ui-express';
 import { ALLOWED_ORIGINS, NODE_ENV, PORT } from './config/env';
 import { logger } from './config/logger';
+import swaggerSpec from './config/swagger';
 import rateLimiter from './lib/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger, simpleLogger } from './middleware/logger';
@@ -30,13 +32,36 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(requestLogger);
 app.use(simpleLogger);
 
+// Swagger UI - disable CSP for this route to allow inline styles/scripts
+app.use('/api-docs', (_req, res, next) => {
+  res.removeHeader('Content-Security-Policy');
+  next();
+});
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'The Librarian API Docs',
+  }),
+);
+
+// OpenAPI JSON spec endpoint
+app.get('/api-docs.json', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // Routes
 app.use('/health', healthRouter);
 // Rate-limit the /hint endpoint per user and globally
 app.use('/hint', rateLimiter(), hintRouter);
 
 app.get('/', (_req: Request, res: Response) => {
-  res.json({ message: 'thelibrarian API - ready', description: 'Visit /health for status' });
+  res.json({
+    message: 'thelibrarian API - ready',
+    description: 'Visit /health for status',
+    docs: '/api-docs',
+  });
 });
 
 // Not found

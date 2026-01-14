@@ -5,6 +5,39 @@ import redisClient from '../config/redis';
 
 const router: Router = Router();
 
+/**
+ * @openapi
+ * /health:
+ *   get:
+ *     summary: Health check endpoint
+ *     description: Returns the health status of the API. When ENABLE_EXTENDED_HEALTH is true, includes dependency checks for Redis and Groq API.
+ *     tags:
+ *       - Health
+ *     responses:
+ *       200:
+ *         description: API is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/HealthResponse'
+ *                 - $ref: '#/components/schemas/ExtendedHealthResponse'
+ *             examples:
+ *               basic:
+ *                 summary: Basic health response
+ *                 value:
+ *                   status: ok
+ *                   uptime: 3600.5
+ *               extended:
+ *                 summary: Extended health response with dependency checks
+ *                 value:
+ *                   status: ok
+ *                   uptime: 3600.5
+ *                   checks:
+ *                     - redis: ok
+ *                     - groq: ok
+ *                       models_count: 10
+ */
 router.get('/', (_req: Request, res: Response) => {
   if (!ENABLE_EXTENDED_HEALTH) return res.json({ status: 'ok', uptime: process.uptime() });
 
