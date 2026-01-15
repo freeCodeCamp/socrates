@@ -9,9 +9,15 @@ import {
   MODEL_CB_FAILURES,
 } from '../config/env';
 import { logger } from '../config/logger';
-import { SYSTEM_PROMPT } from '../config/prompts';
 import { GroqApiError } from '../errors/groqApiError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
+import type { ChallengeType } from '../types/sanitizer';
+
+export interface GroqRequestOptions {
+  systemPrompt: string;
+  userPrompt: string;
+  challengeType?: ChallengeType;
+}
 
 export interface GroqResponse {
   hint: string;
@@ -20,7 +26,8 @@ export interface GroqResponse {
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-export async function generateFromGroq(userPrompt: string): Promise<GroqResponse> {
+export async function generateFromGroq(options: GroqRequestOptions): Promise<GroqResponse> {
+  const { systemPrompt, userPrompt, challengeType } = options;
   const now = Date.now();
   let lastError: Error | null = null;
 
@@ -48,7 +55,7 @@ export async function generateFromGroq(userPrompt: string): Promise<GroqResponse
         {
           model: GROQ_MODEL,
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
           max_tokens: 500,
@@ -66,6 +73,17 @@ export async function generateFromGroq(userPrompt: string): Promise<GroqResponse
       const data = res.data;
       const hint = data.choices?.[0]?.message?.content || '';
       const model_used = data.model || GROQ_MODEL;
+
+      // Log token usage for cost monitoring
+      if (data.usage) {
+        logger.info('Groq token usage', {
+          model: model_used,
+          challengeType: challengeType || 'unknown',
+          promptTokens: data.usage.prompt_tokens,
+          completionTokens: data.usage.completion_tokens,
+          totalTokens: data.usage.total_tokens,
+        });
+      }
 
       // Reset circuit breaker on success
       cb.failures = 0;

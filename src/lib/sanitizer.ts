@@ -1,14 +1,20 @@
 import { InputValidationError } from '../errors/inputValidationError';
-import type { RawRequestBody, SanitizedRequest } from '../types/sanitizer';
+import type { ChallengeType, RawRequestBody, SanitizedRequest } from '../types/sanitizer';
+
+const VALID_CHALLENGE_TYPES: ChallengeType[] = ['html', 'css', 'javascript', 'python'];
 
 function isNonEmptyString(s: unknown): s is string {
   return typeof s === 'string' && s.trim().length > 0;
 }
 
+function isValidChallengeType(s: unknown): s is ChallengeType {
+  return typeof s === 'string' && VALID_CHALLENGE_TYPES.includes(s as ChallengeType);
+}
+
 export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
   if (!raw) throw new InputValidationError('Empty request body');
 
-  const { description, userInput, userId, seed, hints } = raw;
+  const { description, userInput, userId, seed, hints, challengeType } = raw;
 
   if (!isNonEmptyString(description)) {
     throw new InputValidationError('description is required and must be a non-empty string');
@@ -22,6 +28,7 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
 
   const sanitized: SanitizedRequest = {
     userId,
+    challengeType: isValidChallengeType(challengeType) ? challengeType : undefined,
     description: description.trim(),
     userInput: userInput.trim(),
     seed: typeof seed === 'string' ? seed.trim() : '',

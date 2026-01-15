@@ -112,7 +112,11 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
     const built = buildPrompt(sanitized);
 
     // Call Groq
-    const result = await generateFromGroq(built.userPrompt);
+    const result = await generateFromGroq({
+      systemPrompt: built.systemPrompt,
+      userPrompt: built.userPrompt,
+      challengeType: built.challengeType,
+    });
 
     // Sanitize the hint output
     const sanitizedHint = sanitizeHintOutput(result.hint);

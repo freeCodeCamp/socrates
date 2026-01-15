@@ -13,8 +13,11 @@ if (!process.env.RUN_GROQ_INTEGRATION) {
       const { generateFromGroq } = await import('../lib/groqClient');
 
       // Provide a short prompt that should be inexpensive to process
-      const prompt = `Return a short hint (max 10 words): 'Missing closing tag'`;
-      const res = await generateFromGroq(prompt);
+      const res = await generateFromGroq({
+        systemPrompt: 'You are a helpful assistant. Be concise.',
+        userPrompt: `Return a short hint (max 10 words): 'Missing closing tag'`,
+        challengeType: 'html',
+      });
 
       expect(res).toBeDefined();
       expect(typeof res.hint).toBe('string');

@@ -25,12 +25,13 @@ describe('generateFromGroq circuit breaker', () => {
   it('opens circuit after repeated failures and throws ModelUnavailableError', async () => {
     mockedAxios.post = vi.fn().mockRejectedValue(new Error('oom'));
     const failures = 3;
+    const testOpts = { systemPrompt: 'system', userPrompt: 'foo' };
     // Trigger retries: generateFromGroq will make attempts and then increment circuit failures
     for (let i = 0; i < failures; i++) {
-      await expect((global as any).testGenerate('foo')).rejects.toThrow(Error);
+      await expect((global as any).testGenerate(testOpts)).rejects.toThrow(Error);
     }
 
     // Next call should throw ModelUnavailableError directly
-    await expect((global as any).testGenerate('foo')).rejects.toThrow(ModelUnavailableError);
+    await expect((global as any).testGenerate(testOpts)).rejects.toThrow(ModelUnavailableError);
   });
 });
