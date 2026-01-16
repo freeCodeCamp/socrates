@@ -4,6 +4,7 @@
   "mistake": "Student used variable without declaring it first",
   "request": {
     "userId": "test_js_001",
+    "challengeType": "javascript",
     "userInput": "console.log(count);",
     "description": "Declare a variable named count using const and assign it the value 5. Then log the variable to the console.",
     "hints": [

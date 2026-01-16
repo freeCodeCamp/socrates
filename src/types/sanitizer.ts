@@ -7,10 +7,7 @@ export interface RawRequestBody {
   userInput?: string;
   seed?: string;
   hints?: { text: string; failed?: boolean }[];
-  [key: string]:
-    | string
-    | { text: string; failed?: boolean }[]
-    | undefined;
+  [key: string]: string | { text: string; failed?: boolean }[] | undefined;
 }
 
 export interface SanitizedRequest {

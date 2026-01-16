@@ -9,6 +9,7 @@ vi.mock('../config/env', async () => {
   return {
     ...actual,
     API_KEY: '', // Disable API key validation in tests
+    NODE_ENV: 'development',
   };
 });
 

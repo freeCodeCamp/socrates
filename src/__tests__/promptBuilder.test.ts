@@ -23,8 +23,8 @@ describe('buildPrompt', () => {
   });
 
   it('throws PromptSizeError when prompt exceeds MAX_PROMPT_CHARS', () => {
-    // MAX_PROMPT_CHARS is 32000, system prompt is ~11500, so we need >20500 chars of user content
-    const longDescription = 'D'.repeat(25000);
+    // MAX_PROMPT_CHARS is 32000, system prompt is ~6113, user template is ~507, so we need >25380 chars of description
+    const longDescription = 'D'.repeat(26000);
     const sanitized = {
       description: longDescription,
       userInput: 'U',

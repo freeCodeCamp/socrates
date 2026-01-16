@@ -1,4 +1,4 @@
-import { MAX_PROMPT_CHARS, USER_PROMPT_TEMPLATE, getSystemPrompt } from '../config/prompts';
+import { getSystemPrompt, MAX_PROMPT_CHARS, USER_PROMPT_TEMPLATE } from '../config/prompts';
 import { PromptSizeError } from '../errors/promptSizeError';
 import type { ChallengeType, SanitizedRequest } from '../types/sanitizer';
 

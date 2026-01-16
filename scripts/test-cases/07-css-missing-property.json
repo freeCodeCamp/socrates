@@ -4,6 +4,7 @@
   "mistake": "Student has font-size but forgot to add color property",
   "request": {
     "userId": "test_css_001",
+    "challengeType": "css",
     "userInput": ".title { font-size: 24px; }",
     "description": "The color property in CSS sets the text color of an element. Add a color property to the .title class and set it to blue.",
     "hints": [

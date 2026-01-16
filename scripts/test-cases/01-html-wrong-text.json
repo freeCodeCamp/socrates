@@ -4,6 +4,7 @@
   "mistake": "Student typed 'CatPhotoApp3' instead of 'CatPhotoApp'",
   "request": {
     "userId": "test_html_001",
+    "challengeType": "html",
     "userInput": "<h1>CatPhotoApp3</h1>",
     "description": "Begin the workshop by adding an h1 element with the text of CatPhotoApp.",
     "hints": [

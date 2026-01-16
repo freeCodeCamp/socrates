@@ -4,6 +4,7 @@
   "mistake": "Student forgot to add the div container element",
   "request": {
     "userId": "test_html_004",
+    "challengeType": "html",
     "userInput": "<h1>XYZ Bookstore</h1><p>Browse our collection of amazing books!</p>",
     "description": "The div element is used as a container to group other HTML elements. Below the p element, add a div element. This div will be a container for your book cards.",
     "hints": [
