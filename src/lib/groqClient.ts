@@ -26,6 +26,16 @@ export interface GroqResponse {
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
+function selectModel(challengeType?: ChallengeType): string {
+  if (!challengeType) {
+    return GROQ_MODEL;
+  }
+  // Dynamically check for GROQ_MODEL_<CHALLENGE_TYPE> env var
+  const envVarName = `GROQ_MODEL_${challengeType.toUpperCase()}`;
+  const typeSpecificModel = process.env[envVarName];
+  return typeSpecificModel || GROQ_MODEL;
+}
+
 export async function generateFromGroq(options: GroqRequestOptions): Promise<GroqResponse> {
   const { systemPrompt, userPrompt, challengeType } = options;
   const now = Date.now();
@@ -53,13 +63,13 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
       const res = await axios.post(
         GROQ_API_URL,
         {
-          model: GROQ_MODEL,
+          model: selectModel(challengeType),
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          max_tokens: 500,
-          temperature: 0.7,
+          max_tokens: 200,
+          temperature: 0.5,
         },
         {
           headers: {

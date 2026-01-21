@@ -9,7 +9,7 @@ export const isProd = NODE_ENV === 'production';
 export const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*').split(',').map((s) => s.trim());
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-export const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'gpt-oss-20b';
 export const GROQ_TIMEOUT_MS = () =>
   process.env.GROQ_TIMEOUT_MS ? Number(process.env.GROQ_TIMEOUT_MS) : 30000;
 export const GROQ_BACKOFF_BASE_MS = () =>
