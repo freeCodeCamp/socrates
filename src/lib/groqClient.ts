@@ -84,12 +84,20 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
       const hint = data.choices?.[0]?.message?.content || '';
       const model_used = data.model || GROQ_MODEL;
 
-      // Log token usage for cost monitoring
+      // Log token usage and cache metrics for cost monitoring
       if (data.usage) {
+        const cachedTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
+        const cacheHitRate =
+          data.usage.prompt_tokens > 0
+            ? ((cachedTokens / data.usage.prompt_tokens) * 100).toFixed(1)
+            : '0.0';
+
         logger.info('Groq token usage', {
           model: model_used,
           challengeType: challengeType || 'unknown',
           promptTokens: data.usage.prompt_tokens,
+          cachedTokens,
+          cacheHitRate: `${cacheHitRate}%`,
           completionTokens: data.usage.completion_tokens,
           totalTokens: data.usage.total_tokens,
         });

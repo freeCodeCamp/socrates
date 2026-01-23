@@ -2,11 +2,21 @@
 
 freeCodeCamp AI Hint API (The Librarian)
 
-This repository hosts a TypeScript Express API which returns pedagogical hints for freeCodeCamp steps using a local LLM (Ollama + qwen2.5:7b).
+This repository hosts a TypeScript Express API which returns pedagogical hints for freeCodeCamp challenges using Groq AI models.
 
-**Model:** qwen2.5:7b (upgraded from llama3.2:3b for improved reasoning and instruction-following)
+**Models:** 
+- `openai/gpt-oss-20b` - Used for HTML and CSS challenges
+- `openai/gpt-oss-120b` - Used for JavaScript and Python challenges
 
-**Supported Languages:** HTML, CSS, JavaScript, Python (language-agnostic design - extensible to more)
+**Features:**
+- Dynamic model selection based on challenge type
+- Automatic prompt caching (50% cost reduction on cached tokens)
+- Rate limiting (per-user and global)
+- Circuit breaker pattern for API resilience
+- API key authentication
+- Basic auth for API documentation
+
+**Supported Challenge Types:** HTML, CSS, JavaScript, Python
 
 ## Setup (local development)
 
