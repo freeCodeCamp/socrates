@@ -40,5 +40,34 @@ if (!process.env.RUN_GROQ_INTEGRATION) {
       expect(res.body.hint.length).toBeGreaterThan(0);
       expect(res.headers['x-model-used']).toBeDefined();
     }, 20000);
+
+    it('handles empty userInput by falling back to seed', async () => {
+      const rateLimiter = (await import('../lib/rateLimiter')).default;
+      const hintRouter = (await import('../routes/hint')).default;
+
+      const app = express();
+      app.use(bodyParser.json());
+      app.use('/hint', rateLimiter(), hintRouter);
+
+      const payload = {
+        description: '<p>Create a main element</p>',
+        userInput: '',
+        seed: '<html><body></body></html>',
+        userId: 'user_123',
+        hints: [
+          { text: 'Your main element should have an opening tag.', failed: true },
+        ],
+      };
+
+      const res = await request(app)
+        .post('/hint')
+        .set('X-API-Key', 'secret')
+        .send(payload)
+        .timeout(20000);
+
+      expect(res.status).toBe(200);
+      expect(res.body.hint).toBeDefined();
+      expect(res.body.hint.length).toBeGreaterThan(0);
+    }, 20000);
   });
 }

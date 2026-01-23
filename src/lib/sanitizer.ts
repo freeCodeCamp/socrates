@@ -19,18 +19,24 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
   if (!isNonEmptyString(description)) {
     throw new InputValidationError('description is required and must be a non-empty string');
   }
-  if (!isNonEmptyString(userInput)) {
-    throw new InputValidationError('userInput is required and must be a non-empty string');
-  }
   if (!isNonEmptyString(userId)) {
     throw new InputValidationError('userId is required and must be a non-empty string');
+  }
+
+  // Fallback to seed when userInput is empty
+  const effectiveUserInput = isNonEmptyString(userInput) 
+    ? userInput 
+    : (typeof seed === 'string' && seed.trim().length > 0 ? seed : '');
+
+  if (!isNonEmptyString(effectiveUserInput)) {
+    throw new InputValidationError('Either userInput or seed must be a non-empty string');
   }
 
   const sanitized: SanitizedRequest = {
     userId,
     challengeType: isValidChallengeType(challengeType) ? challengeType : undefined,
     description: description.trim(),
-    userInput: userInput.trim(),
+    userInput: effectiveUserInput.trim(),
     seed: typeof seed === 'string' ? seed.trim() : '',
   };
 
