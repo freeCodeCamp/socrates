@@ -1,6 +1,6 @@
-import { MAX_PROMPT_CHARS, SYSTEM_PROMPT, USER_PROMPT_TEMPLATE } from '../config/prompts';
+import { getSystemPrompt, MAX_PROMPT_CHARS, USER_PROMPT_TEMPLATE } from '../config/prompts';
 import { PromptSizeError } from '../errors/promptSizeError';
-import type { SanitizedRequest } from '../types/sanitizer';
+import type { ChallengeType, SanitizedRequest } from '../types/sanitizer';
 
 function interpolate(template: string, values: Record<string, string | undefined>) {
   let out = template;
@@ -15,6 +15,7 @@ export interface BuiltPrompt {
   userPrompt: string;
   fullPrompt: string;
   length: number;
+  challengeType?: ChallengeType;
 }
 
 export function buildPrompt(sanitized: SanitizedRequest): BuiltPrompt {
@@ -22,6 +23,9 @@ export function buildPrompt(sanitized: SanitizedRequest): BuiltPrompt {
   const code = sanitized.userInput || '';
   const seed = sanitized.seed || '';
   const hints = sanitized.hints || '';
+  const challengeType = sanitized.challengeType;
+
+  const systemPrompt = getSystemPrompt(challengeType);
 
   const userPrompt = interpolate(USER_PROMPT_TEMPLATE, {
     description: desc,
@@ -30,7 +34,7 @@ export function buildPrompt(sanitized: SanitizedRequest): BuiltPrompt {
     hints: hints,
   });
 
-  const full = `${SYSTEM_PROMPT}\n\n${userPrompt}`;
+  const full = `${systemPrompt}\n\n${userPrompt}`;
   const len = full.length;
 
   if (len > MAX_PROMPT_CHARS) {
@@ -38,10 +42,11 @@ export function buildPrompt(sanitized: SanitizedRequest): BuiltPrompt {
   }
 
   return {
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt,
     userPrompt,
     fullPrompt: full,
     length: len,
+    challengeType,
   };
 }
 

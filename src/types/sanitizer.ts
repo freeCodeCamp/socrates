@@ -1,5 +1,8 @@
+export type ChallengeType = 'html' | 'css' | 'javascript' | 'python';
+
 export interface RawRequestBody {
   userId?: string;
+  challengeType?: string;
   description?: string;
   userInput?: string;
   seed?: string;
@@ -9,6 +12,7 @@ export interface RawRequestBody {
 
 export interface SanitizedRequest {
   userId?: string;
+  challengeType?: ChallengeType;
   description: string;
   userInput: string;
   seed: string;

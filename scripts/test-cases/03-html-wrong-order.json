@@ -4,6 +4,7 @@
   "mistake": "Student placed p element above h1 instead of below",
   "request": {
     "userId": "test_html_003",
+    "challengeType": "html",
     "userInput": "<p>Browse our collection of amazing books!</p><h1>XYZ Bookstore</h1>",
     "description": "Below the h1 element, add a p element with this text: Browse our collection of amazing books!",
     "hints": [

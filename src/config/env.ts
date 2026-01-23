@@ -9,7 +9,7 @@ export const isProd = NODE_ENV === 'production';
 export const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '*').split(',').map((s) => s.trim());
 export const LOG_LEVEL = process.env.LOG_LEVEL || 'info';
 export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-export const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile';
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'gpt-oss-20b';
 export const GROQ_TIMEOUT_MS = () =>
   process.env.GROQ_TIMEOUT_MS ? Number(process.env.GROQ_TIMEOUT_MS) : 30000;
 export const GROQ_BACKOFF_BASE_MS = () =>
@@ -27,11 +27,16 @@ export const MODEL_CB_COOLDOWN_MS = process.env.MODEL_CB_COOLDOWN_MS
   : 30000; // cooldown
 export const ENABLE_EXTENDED_HEALTH = process.env.ENABLE_EXTENDED_HEALTH === 'true';
 export const API_KEY = process.env.API_KEY || '';
+export const DOCS_BASIC_AUTH_USER = process.env.DOCS_BASIC_AUTH_USER || '';
+export const DOCS_BASIC_AUTH_PASS = process.env.DOCS_BASIC_AUTH_PASS || '';
 
-// Validate required environment variables in production
-if (isProd && !API_KEY) {
-  throw new Error('API_KEY environment variable is required in production');
+// Validate required environment variables
+if (!API_KEY) {
+  throw new Error('API_KEY environment variable is required');
 }
-if (isProd && !GROQ_API_KEY) {
-  throw new Error('GROQ_API_KEY environment variable is required in production');
+if (!GROQ_API_KEY) {
+  throw new Error('GROQ_API_KEY environment variable is required');
+}
+if (!DOCS_BASIC_AUTH_USER || !DOCS_BASIC_AUTH_PASS) {
+  throw new Error('DOCS_BASIC_AUTH_USER and DOCS_BASIC_AUTH_PASS are required');
 }

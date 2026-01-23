@@ -1,15 +1,16 @@
 import type { NextFunction, Request, Response } from 'express';
-import { API_KEY } from '../config/env';
+import { API_KEY, NODE_ENV } from '../config/env';
 import { logger } from '../config/logger';
 
 /**
  * Middleware to validate API key from request headers
  * Expects the API key in the X-API-Key header
+ *
+ * API key validation is skipped in non-production/staging environments
  */
 export function apiKeyAuthMiddleware(req: Request, res: Response, next: NextFunction) {
-  // Skip API key validation if no API_KEY is configured (development mode)
-  if (!API_KEY) {
-    logger.warn('API_KEY not configured - skipping API key validation');
+  if (NODE_ENV !== 'production' && NODE_ENV !== 'staging') {
+    logger.info(`${NODE_ENV} mode: skipping API key validation`);
     return next();
   }
 
@@ -33,7 +34,6 @@ export function apiKeyAuthMiddleware(req: Request, res: Response, next: NextFunc
     return;
   }
 
-  // API key is valid, proceed to next middleware
   next();
 }
 

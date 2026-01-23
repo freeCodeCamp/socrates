@@ -4,6 +4,7 @@
   "mistake": "Student called function with only one argument instead of two",
   "request": {
     "userId": "test_js_002",
+    "challengeType": "javascript",
     "userInput": "const add = (a, b) => a + b;\nconsole.log(add(3));",
     "description": "Write an arrow function named add that takes two parameters a and b and returns their sum. Then call the function with arguments 3 and 4.",
     "hints": [

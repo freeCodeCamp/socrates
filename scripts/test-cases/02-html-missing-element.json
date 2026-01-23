@@ -4,6 +4,7 @@
   "mistake": "Student forgot to add the p element below h2",
   "request": {
     "userId": "test_html_002",
+    "challengeType": "html",
     "userInput": "<h1>CatPhotoApp</h1><h2>Cat Photos</h2>",
     "description": "Create a p element below your h2 element and give it the following text: Everyone loves cute cats online!",
     "hints": [

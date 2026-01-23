@@ -8,7 +8,11 @@ vi.mock('../config/env', async () => {
   const actual = await vi.importActual('../config/env');
   return {
     ...actual,
-    API_KEY: '', // Disable API key validation in tests
+    API_KEY: 'test-api-key',
+    NODE_ENV: 'test',
+    GROQ_API_KEY: 'test-groq-key',
+    DOCS_BASIC_AUTH_USER: 'test-user',
+    DOCS_BASIC_AUTH_PASS: 'test-pass',
   };
 });
 
@@ -42,7 +46,10 @@ describe('POST /hint', () => {
         userInput: '<div></div>',
         seed: '<html><body></body></html>',
         userId: 'user_123',
-        hints: ['Your element should have an opening tag.'],
+        hints: [
+          { text: 'Your element should have an opening tag.', failed: true },
+          { text: 'Your element should have a closing tag.', failed: false },
+        ],
       })
       .expect(200);
 
@@ -66,7 +73,7 @@ describe('POST /hint', () => {
         userInput: '<div></div>',
         seed: '<html><body></body></html>',
         userId: 'user_123',
-        hints: ['Your element should have an opening tag.'],
+        hints: [{ text: 'Your element should have an opening tag.', failed: true }],
       })
       .expect(200);
 
@@ -78,6 +85,24 @@ describe('POST /hint', () => {
   it('returns 400 for invalid request body', async () => {
     const res = await request(app).post('/hint').send({ userInput: '<div></div>' }).expect(400);
     expect(res.body.message).toBeDefined();
+  });
+
+  it('returns 400 when no failing tests are provided', async () => {
+    const res = await request(app)
+      .post('/hint')
+      .send({
+        description: 'Add header',
+        userInput: '<div></div>',
+        seed: '<html><body></body></html>',
+        userId: 'user_123',
+        hints: [
+          { text: 'Looks fine', failed: false },
+          { text: 'Also fine', failed: false },
+        ],
+      })
+      .expect(400);
+
+    expect(res.body.message).toContain('failing test');
   });
 
   it('returns fallback hint when model is unavailable', async () => {
@@ -92,7 +117,7 @@ describe('POST /hint', () => {
         userInput: '<div></div>',
         seed: '<html><body></body></html>',
         userId: 'user_123',
-        hints: ['Your element should have an opening tag.'],
+        hints: [{ text: 'Your element should have an opening tag.', failed: true }],
       })
       .expect(200);
 
@@ -112,7 +137,7 @@ describe('POST /hint', () => {
         userInput: '<div></div>',
         seed: '<html><body></body></html>',
         userId: 'user_123',
-        hints: ['Your element should have an opening tag.'],
+        hints: [{ text: 'Your element should have an opening tag.', failed: true }],
       })
       .expect(500);
 

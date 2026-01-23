@@ -20,7 +20,8 @@
     "test:integration": "RUN_GROQ_INTEGRATION=true vitest run src/__tests__/groqClient.integration.test.ts src/__tests__/hintRoute.integration.test.ts",
     "test:manual": "bash ./scripts/test-hints.sh",
     "test:watch": "vitest",
-    "generate-api-key": "ts-node scripts/generate-api-key.ts"
+    "generate-api-key": "ts-node scripts/generate-api-key.ts",
+    "prepare": "husky"
   },
   "author": "",
   "license": "MIT",
@@ -54,10 +55,15 @@
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-import": "^2.27.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "nodemon": "^2.0.22",
     "prettier": "^3.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.3.0",
     "vitest": "^1.5.7"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,json,md}": "biome check --write"
   }
 }

@@ -9,6 +9,19 @@
 #   API_KEY       - API key for authentication (default: secret)
 #   REQUEST_DELAY - Delay between requests in seconds (default: 1)
 #
+# Test Case Format:
+#   Each JSON file should have:
+#   - name: Test case name
+#   - challenge: Challenge name
+#   - mistake: Description of the student's mistake
+#   - request: Object with:
+#       - userId: User identifier
+#       - description: Challenge description
+#       - userInput: Student's code
+#       - challengeType: (optional) One of: html, css, javascript, python
+#       - seed: (optional) Starter code
+#       - hints: (optional) Array of test results with text and failed boolean
+#
 # Examples:
 #   pnpm run test:manual                        # Run all tests with 1s delay
 #   REQUEST_DELAY=2 pnpm run test:manual        # Run all tests with 2s delay
@@ -60,10 +73,12 @@ run_test() {
     local test_name=$(jq -r '.name' "$test_file")
     local challenge=$(jq -r '.challenge' "$test_file")
     local mistake=$(jq -r '.mistake' "$test_file")
+    local challenge_type=$(jq -r '.request.challengeType // "not specified"' "$test_file")
 
     echo -e "${YELLOW}━━━ ${test_name} ━━━${NC}"
-    echo -e "  Challenge: ${challenge}"
-    echo -e "  Mistake:   ${mistake}"
+    echo -e "  Challenge:      ${challenge}"
+    echo -e "  Type:           ${challenge_type}"
+    echo -e "  Mistake:        ${mistake}"
 
     # Extract request payload
     local request=$(jq -c '.request' "$test_file")
@@ -90,8 +105,8 @@ run_test() {
         echo -e "  Response: ${response}\n"
         return 1
     else
-        echo -e "  ${GREEN}✓ Hint:${NC} ${hint}"
-        echo -e "  Model: ${model}\n"
+        echo -e "  ${GREEN}✓ Model Used:${NC}   ${model}"
+        echo -e "  ${GREEN}✓ Hint:${NC}        ${hint}\n"
         return 0
     fi
 }
@@ -149,12 +164,15 @@ generate_report() {
                 local test_name=$(jq -r '.name' "$test_file")
                 local challenge=$(jq -r '.challenge' "$test_file")
                 local mistake=$(jq -r '.mistake' "$test_file")
+                local challenge_type=$(jq -r '.request.challengeType // "not specified"' "$test_file")
                 local user_input=$(jq -r '.request.userInput' "$test_file")
                 local request=$(jq -c '.request' "$test_file")
 
                 echo "## ${test_name}"
                 echo ""
                 echo "**Challenge:** ${challenge}"
+                echo ""
+                echo "**Challenge Type:** ${challenge_type}"
                 echo ""
                 echo "**Student Mistake:** ${mistake}"
                 echo ""

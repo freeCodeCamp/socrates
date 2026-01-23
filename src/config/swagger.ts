@@ -36,6 +36,13 @@ const swaggerDefinition: swaggerJsdoc.SwaggerDefinition = {
             description: 'Unique identifier for the user making the request',
             example: 'user-12345',
           },
+          challengeType: {
+            type: 'string',
+            enum: ['html', 'css', 'javascript', 'python'],
+            description:
+              'Type of challenge for optimized prompts. If not provided, uses full prompt.',
+            example: 'javascript',
+          },
           description: {
             type: 'string',
             description: 'Description of the coding challenge or problem',

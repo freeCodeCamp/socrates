@@ -4,17 +4,95 @@ import sanitizeRequest from '../lib/sanitizer';
 
 describe('sanitizeRequest', () => {
   it('throws when description missing', () => {
-    const raw = { userInput: '<div></div>', seed: '<html></html>', userId: 'user_123' } as any;
+    const raw = {
+      userInput: '<div></div>',
+      seed: '<html></html>',
+      userId: 'user_123',
+      hints: [{ text: 'fail', failed: true }],
+    } as any;
     expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
   });
 
-  it('throws when userInput missing', () => {
-    const raw = { description: '<p>Test</p>', seed: '<html></html>', userId: 'user_123' } as any;
+  it('uses seed as fallback when userInput is missing', () => {
+    const raw = {
+      description: '<p>Test</p>',
+      seed: '<html></html>',
+      userId: 'user_123',
+      hints: [{ text: 'fail', failed: true }],
+    } as any;
+    const s = sanitizeRequest(raw);
+    expect(s.userInput).toBe('<html></html>');
+    expect(s.seed).toBe('<html></html>');
+  });
+
+  it('throws when no failing hints are provided', () => {
+    const raw = {
+      description: '<p>Test</p>',
+      userInput: '<div></div>',
+      userId: 'user_123',
+      hints: [
+        { text: 'All good', failed: false },
+        { text: 'Still fine', failed: false },
+      ],
+    } as any;
+
+    expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
+  });
+
+  it('uses seed as fallback when userInput is empty string', () => {
+    const raw = {
+      description: '<p>Test</p>',
+      userInput: '',
+      seed: '<html></html>',
+      userId: 'user_123',
+      hints: [{ text: 'fail', failed: true }],
+    } as any;
+    const s = sanitizeRequest(raw);
+    expect(s.userInput).toBe('<html></html>');
+  });
+
+  it('uses seed as fallback when userInput is whitespace only', () => {
+    const raw = {
+      description: '<p>Test</p>',
+      userInput: '   ',
+      seed: '<html></html>',
+      userId: 'user_123',
+      hints: [{ text: 'fail', failed: true }],
+    } as any;
+    const s = sanitizeRequest(raw);
+    expect(s.userInput).toBe('<html></html>');
+  });
+
+  it('throws when both userInput and seed are missing', () => {
+    const raw = {
+      description: '<p>Test</p>',
+      userId: 'user_123',
+      hints: [{ text: 'fail', failed: true }],
+    } as any;
+    expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
+    expect(() => sanitizeRequest(raw)).toThrow(
+      'Either userInput or seed must be a non-empty string',
+    );
+  });
+
+  it('throws when both userInput and seed are empty strings', () => {
+    const raw = {
+      description: '<p>Test</p>',
+      userInput: '',
+      seed: '',
+      userId: 'user_123',
+      hints: [{ text: 'fail', failed: true }],
+    } as any;
     expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
   });
 
   it('does not throw when seed missing', () => {
-    const raw = { description: '<p>Test</p>', userInput: '<div></div>', userId: 'user_123' } as any;
+    const raw = {
+      description: '<p>Test</p>',
+      userInput: '<div></div>',
+      userId: 'user_123',
+      hints: [{ text: 'fail', failed: true }],
+    } as any;
     const s = sanitizeRequest(raw);
     expect(s.seed).toBe('');
   });
@@ -24,6 +102,7 @@ describe('sanitizeRequest', () => {
       description: '<p>Test</p>',
       userInput: '<div></div>',
       seed: '<html></html>',
+      hints: [{ text: 'fail', failed: true }],
     } as any;
     expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
   });
@@ -56,8 +135,7 @@ describe('sanitizeRequest', () => {
       userId: 'user_123',
       hints: [],
     } as any;
-    const s = sanitizeRequest(raw);
-    expect(s.hints).toBeUndefined();
+    expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
   });
 
   it('returns undefined hints when no failing tests', () => {
@@ -71,8 +149,7 @@ describe('sanitizeRequest', () => {
         { text: 'Another hint', failed: false },
       ],
     } as any;
-    const s = sanitizeRequest(raw);
-    expect(s.hints).toBeUndefined();
+    expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
   });
 
   it('finds first failed hint even with invalid entries', () => {

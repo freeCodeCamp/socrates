@@ -9,9 +9,15 @@ import {
   MODEL_CB_FAILURES,
 } from '../config/env';
 import { logger } from '../config/logger';
-import { SYSTEM_PROMPT } from '../config/prompts';
 import { GroqApiError } from '../errors/groqApiError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
+import type { ChallengeType } from '../types/sanitizer';
+
+export interface GroqRequestOptions {
+  systemPrompt: string;
+  userPrompt: string;
+  challengeType?: ChallengeType;
+}
 
 export interface GroqResponse {
   hint: string;
@@ -20,7 +26,18 @@ export interface GroqResponse {
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-export async function generateFromGroq(userPrompt: string): Promise<GroqResponse> {
+function selectModel(challengeType?: ChallengeType): string {
+  if (!challengeType) {
+    return GROQ_MODEL;
+  }
+  // Dynamically check for GROQ_MODEL_<CHALLENGE_TYPE> env var
+  const envVarName = `GROQ_MODEL_${challengeType.toUpperCase()}`;
+  const typeSpecificModel = process.env[envVarName];
+  return typeSpecificModel || GROQ_MODEL;
+}
+
+export async function generateFromGroq(options: GroqRequestOptions): Promise<GroqResponse> {
+  const { systemPrompt, userPrompt, challengeType } = options;
   const now = Date.now();
   let lastError: Error | null = null;
 
@@ -46,13 +63,13 @@ export async function generateFromGroq(userPrompt: string): Promise<GroqResponse
       const res = await axios.post(
         GROQ_API_URL,
         {
-          model: GROQ_MODEL,
+          model: selectModel(challengeType),
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          max_tokens: 500,
-          temperature: 0.7,
+          max_tokens: 200,
+          temperature: 0.5,
         },
         {
           headers: {
@@ -66,6 +83,25 @@ export async function generateFromGroq(userPrompt: string): Promise<GroqResponse
       const data = res.data;
       const hint = data.choices?.[0]?.message?.content || '';
       const model_used = data.model || GROQ_MODEL;
+
+      // Log token usage and cache metrics for cost monitoring
+      if (data.usage) {
+        const cachedTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
+        const cacheHitRate =
+          data.usage.prompt_tokens > 0
+            ? ((cachedTokens / data.usage.prompt_tokens) * 100).toFixed(1)
+            : '0.0';
+
+        logger.info('Groq token usage', {
+          model: model_used,
+          challengeType: challengeType || 'unknown',
+          promptTokens: data.usage.prompt_tokens,
+          cachedTokens,
+          cacheHitRate: `${cacheHitRate}%`,
+          completionTokens: data.usage.completion_tokens,
+          totalTokens: data.usage.total_tokens,
+        });
+      }
 
       // Reset circuit breaker on success
       cb.failures = 0;

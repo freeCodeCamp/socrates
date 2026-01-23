@@ -7,6 +7,7 @@ import { ALLOWED_ORIGINS, NODE_ENV, PORT } from './config/env';
 import { logger } from './config/logger';
 import swaggerSpec from './config/swagger';
 import rateLimiter from './lib/rateLimiter';
+import docsAuthMiddleware from './middleware/docsAuth';
 import { errorHandler } from './middleware/errorHandler';
 import { requestLogger, simpleLogger } from './middleware/logger';
 import healthRouter from './routes/health';
@@ -33,6 +34,7 @@ app.use(requestLogger);
 app.use(simpleLogger);
 
 // Swagger UI - disable CSP for this route to allow inline styles/scripts
+app.use('/api-docs', docsAuthMiddleware);
 app.use('/api-docs', (_req, res, next) => {
   res.removeHeader('Content-Security-Policy');
   next();
@@ -46,7 +48,7 @@ app.use(
 );
 
 // OpenAPI JSON spec endpoint
-app.get('/api-docs.json', (_req: Request, res: Response) => {
+app.get('/api-docs.json', docsAuthMiddleware, (_req: Request, res: Response) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });

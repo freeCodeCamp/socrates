@@ -9,6 +9,10 @@ describe('generateFromGroq', () => {
     vi.resetAllMocks();
     // Reset circuit breaker state
     (global as any)._groqCircuit = { failures: 0, openedUntil: 0 };
+    // Set required environment variables
+    process.env.API_KEY = 'test-api-key';
+    process.env.DOCS_BASIC_AUTH_USER = 'test-user';
+    process.env.DOCS_BASIC_AUTH_PASS = 'test-pass';
   });
 
   it('returns hint and model on success', async () => {
@@ -22,7 +26,10 @@ describe('generateFromGroq', () => {
         model: 'llama-3.3-70b-versatile',
       },
     });
-    const res = await generateFromGroq('foo');
+    const res = await generateFromGroq({
+      systemPrompt: 'system',
+      userPrompt: 'foo',
+    });
     expect(res.hint).toBe('A helpful hint');
     expect(res.model_used).toBe('llama-3.3-70b-versatile');
   });
@@ -39,14 +46,17 @@ describe('generateFromGroq', () => {
       },
     });
 
-    await generateFromGroq('user prompt');
+    await generateFromGroq({
+      systemPrompt: 'system prompt',
+      userPrompt: 'user prompt',
+    });
 
     expect(mockedAxios.post).toHaveBeenCalledWith(
       'https://api.groq.com/openai/v1/chat/completions',
       expect.objectContaining({
         model: expect.any(String),
         messages: expect.arrayContaining([
-          expect.objectContaining({ role: 'system' }),
+          expect.objectContaining({ role: 'system', content: 'system prompt' }),
           expect.objectContaining({ role: 'user', content: 'user prompt' }),
         ]),
       }),
@@ -73,7 +83,10 @@ describe('generateFromGroq', () => {
     });
     mockedAxios.post = vi.fn().mockImplementationOnce(fail).mockImplementationOnce(success);
 
-    const res = await generateFromGroq('foo');
+    const res = await generateFromGroq({
+      systemPrompt: 'system',
+      userPrompt: 'foo',
+    });
     expect(res.hint).toBe('recovered hint');
   });
 
@@ -84,6 +97,11 @@ describe('generateFromGroq', () => {
     process.env.GROQ_API_KEY = 'test-key';
     const { generateFromGroq } = await import(`../lib/groqClient?cacheBust=${Date.now()}`);
     mockedAxios.post = vi.fn().mockRejectedValue(new Error('oom'));
-    await expect(generateFromGroq('foo')).rejects.toThrow();
+    await expect(
+      generateFromGroq({
+        systemPrompt: 'system',
+        userPrompt: 'foo',
+      }),
+    ).rejects.toThrow();
   });
 });
