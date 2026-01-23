@@ -76,9 +76,9 @@ run_test() {
     local challenge_type=$(jq -r '.request.challengeType // "not specified"' "$test_file")
 
     echo -e "${YELLOW}━━━ ${test_name} ━━━${NC}"
-    echo -e "  Challenge: ${challenge}"
-    echo -e "  Type:      ${challenge_type}"
-    echo -e "  Mistake:   ${mistake}"
+    echo -e "  Challenge:      ${challenge}"
+    echo -e "  Type:           ${challenge_type}"
+    echo -e "  Mistake:        ${mistake}"
 
     # Extract request payload
     local request=$(jq -c '.request' "$test_file")
@@ -105,8 +105,8 @@ run_test() {
         echo -e "  Response: ${response}\n"
         return 1
     else
-        echo -e "  ${GREEN}✓ Hint:${NC} ${hint}"
-        echo -e "  Model: ${model}\n"
+        echo -e "  ${GREEN}✓ Model Used:${NC}   ${model}"
+        echo -e "  ${GREEN}✓ Hint:${NC}        ${hint}\n"
         return 0
     fi
 }
