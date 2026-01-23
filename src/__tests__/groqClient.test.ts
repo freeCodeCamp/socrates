@@ -9,6 +9,10 @@ describe('generateFromGroq', () => {
     vi.resetAllMocks();
     // Reset circuit breaker state
     (global as any)._groqCircuit = { failures: 0, openedUntil: 0 };
+    // Set required environment variables
+    process.env.API_KEY = 'test-api-key';
+    process.env.DOCS_BASIC_AUTH_USER = 'test-user';
+    process.env.DOCS_BASIC_AUTH_PASS = 'test-pass';
   });
 
   it('returns hint and model on success', async () => {

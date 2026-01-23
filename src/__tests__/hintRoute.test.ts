@@ -8,8 +8,11 @@ vi.mock('../config/env', async () => {
   const actual = await vi.importActual('../config/env');
   return {
     ...actual,
-    API_KEY: '', // Disable API key validation in tests
-    NODE_ENV: 'development',
+    API_KEY: 'test-api-key',
+    NODE_ENV: 'test',
+    GROQ_API_KEY: 'test-groq-key',
+    DOCS_BASIC_AUTH_USER: 'test-user',
+    DOCS_BASIC_AUTH_PASS: 'test-pass',
   };
 });
 

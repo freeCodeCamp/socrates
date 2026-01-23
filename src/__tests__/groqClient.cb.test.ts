@@ -16,6 +16,9 @@ describe('generateFromGroq circuit breaker', () => {
     process.env.GROQ_TIMEOUT_MS = '50';
     process.env.GROQ_BACKOFF_BASE_MS = '1';
     process.env.GROQ_API_KEY = 'test-key';
+    process.env.API_KEY = 'test-api-key';
+    process.env.DOCS_BASIC_AUTH_USER = 'test-user';
+    process.env.DOCS_BASIC_AUTH_PASS = 'test-pass';
     // reimport module to pick up env
     const mod = await import('../lib/groqClient');
     // replace generateFromGroq in test scope
