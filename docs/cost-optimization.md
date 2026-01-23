@@ -262,3 +262,34 @@ With all optimizations implemented:
 2. Coordinate with freeCodeCamp team on `challengeType` parameter
 3. Begin Phase 1 implementation
 4. Set up cost monitoring dashboard
+
+---
+
+## Prompt Caching Implementation (Groq)
+
+Groq provides automatic prompt caching (50% discount on cached tokens) for our models `openai/gpt-oss-20b` and `openai/gpt-oss-120b`. No API changes are required, but we need to keep prompts cache-friendly and monitor hit rates to ensure hint quality is preserved.
+
+### How We Will Use It
+- Keep static content first: system prompt + few-shot examples remain stable per challenge type; dynamic user code and failing tests stay in the user message.
+- Maintain message shape: system → user messages only; no per-request structural changes.
+- Model stability: keep per-type model mapping (20b for HTML/CSS, 120b for JS/Python) to maximize cache reuse.
+
+### Rollout Plan
+1) **Enable & observe (now)**: Caching is already on by default; keep current prompt order. Run smoke tests across all challenge types.
+2) **Measure**: Use existing Groq usage logs (`cachedTokens`, `cacheHitRate`, `promptTokens`, `completionTokens`, `model`, `challengeType`). Target ≥60% hit rate when sending multiple requests of the same challenge type in a short window.
+3) **Tune prompts (if needed)**: If hit rate is low, reduce variability in system prompts (remove incidental changes) and keep dynamic data out of system prompts.
+4) **Quality guardrails**: For any prompt edits, capture before/after sample hints per challenge type; block changes that degrade clarity or specificity. Keep temperature and max_tokens unchanged during cache tuning.
+
+### Monitoring & Reporting
+- **Per-request logs** (already added): include `cachedTokens`, `cacheHitRate`, `promptTokens`, `completionTokens`, `model`, `challengeType`.
+- **Periodic check**: run `scripts/prove-caching.sh` (identical prompts) and `scripts/test-hints.sh` (real challenge mix) to confirm cache hits and hint quality.
+- **Alerting (optional)**: add a simple threshold alert if cacheHitRate < 20% over N requests for a given challenge type, to catch regressions from prompt drift.
+
+### Quality Preservation Checklist
+- Do not add timestamps/IDs/randomness to system prompts.
+- Keep system prompts stable per challenge type; put all user-specific data in the user message.
+- Validate sample hints after any prompt change; compare tone, specificity, and correctness.
+
+### Success Criteria
+- Cache hit rate ≥60% for repeated requests of the same challenge type within a session.
+- No degradation in hint clarity or correctness in sampled outputs before/after prompt adjustments.

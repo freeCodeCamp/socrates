@@ -42,7 +42,7 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
     seed: typeof seed === 'string' ? seed.trim() : '',
   };
 
-  // Process hints array - only include the FIRST failing test
+  // Process hints array - require at least one failing test and include only the FIRST failing test
   if (Array.isArray(hints) && hints.length > 0) {
     const firstFailed = hints.find(
       (h) =>
@@ -56,7 +56,11 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
 
     if (firstFailed && typeof firstFailed.text === 'string') {
       sanitized.hints = firstFailed.text.trim();
+    } else {
+      throw new InputValidationError('At least one failing test hint is required');
     }
+  } else {
+    throw new InputValidationError('Hints array with a failing test is required');
   }
 
   return sanitized;
