@@ -20,7 +20,8 @@
     "test:integration": "RUN_GROQ_INTEGRATION=true vitest run src/__tests__/groqClient.integration.test.ts src/__tests__/hintRoute.integration.test.ts",
     "test:manual": "bash ./scripts/test-hints.sh",
     "test:watch": "vitest",
-    "generate-api-key": "ts-node scripts/generate-api-key.ts"
+    "generate-api-key": "ts-node scripts/generate-api-key.ts",
+    "prepare": "husky"
   },
   "author": "",
   "license": "MIT",

@@ -54,9 +54,7 @@ if (!process.env.RUN_GROQ_INTEGRATION) {
         userInput: '',
         seed: '<html><body></body></html>',
         userId: 'user_123',
-        hints: [
-          { text: 'Your main element should have an opening tag.', failed: true },
-        ],
+        hints: [{ text: 'Your main element should have an opening tag.', failed: true }],
       };
 
       const res = await request(app)

@@ -24,9 +24,11 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
   }
 
   // Fallback to seed when userInput is empty
-  const effectiveUserInput = isNonEmptyString(userInput) 
-    ? userInput 
-    : (typeof seed === 'string' && seed.trim().length > 0 ? seed : '');
+  const effectiveUserInput = isNonEmptyString(userInput)
+    ? userInput
+    : typeof seed === 'string' && seed.trim().length > 0
+      ? seed
+      : '';
 
   if (!isNonEmptyString(effectiveUserInput)) {
     throw new InputValidationError('Either userInput or seed must be a non-empty string');

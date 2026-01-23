@@ -16,13 +16,23 @@ describe('sanitizeRequest', () => {
   });
 
   it('uses seed as fallback when userInput is empty string', () => {
-    const raw = { description: '<p>Test</p>', userInput: '', seed: '<html></html>', userId: 'user_123' } as any;
+    const raw = {
+      description: '<p>Test</p>',
+      userInput: '',
+      seed: '<html></html>',
+      userId: 'user_123',
+    } as any;
     const s = sanitizeRequest(raw);
     expect(s.userInput).toBe('<html></html>');
   });
 
   it('uses seed as fallback when userInput is whitespace only', () => {
-    const raw = { description: '<p>Test</p>', userInput: '   ', seed: '<html></html>', userId: 'user_123' } as any;
+    const raw = {
+      description: '<p>Test</p>',
+      userInput: '   ',
+      seed: '<html></html>',
+      userId: 'user_123',
+    } as any;
     const s = sanitizeRequest(raw);
     expect(s.userInput).toBe('<html></html>');
   });
@@ -30,7 +40,9 @@ describe('sanitizeRequest', () => {
   it('throws when both userInput and seed are missing', () => {
     const raw = { description: '<p>Test</p>', userId: 'user_123' } as any;
     expect(() => sanitizeRequest(raw)).toThrow(InputValidationError);
-    expect(() => sanitizeRequest(raw)).toThrow('Either userInput or seed must be a non-empty string');
+    expect(() => sanitizeRequest(raw)).toThrow(
+      'Either userInput or seed must be a non-empty string',
+    );
   });
 
   it('throws when both userInput and seed are empty strings', () => {
