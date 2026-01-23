@@ -13,6 +13,10 @@ const swaggerDefinition: swaggerJsdoc.SwaggerDefinition = {
   },
   servers: [
     {
+      url: 'https://socrates.freecodecamp.dev',
+      description: 'Production server',
+    },
+    {
       url: 'http://localhost:3000',
       description: 'Development server',
     },
