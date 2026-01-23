@@ -43,7 +43,7 @@ app.use(
   '/api-docs',
   swaggerUi.serve,
   swaggerUi.setup(swaggerSpec, {
-    customSiteTitle: 'The Librarian API Docs',
+    customSiteTitle: 'Socrates API Docs',
   }),
 );
 
@@ -60,7 +60,7 @@ app.use('/hint', rateLimiter(), hintRouter);
 
 app.get('/', (_req: Request, res: Response) => {
   res.json({
-    message: 'thelibrarian API - ready',
+    message: 'socrates API - ready',
     description: 'Visit /health for status',
     docs: '/api-docs',
   });

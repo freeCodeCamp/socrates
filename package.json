@@ -1,7 +1,7 @@
 {
-  "name": "thelibrarian",
+  "name": "socrates",
   "version": "0.1.0",
-  "description": "freeCodeCamp AI Hint API - The Librarian",
+  "description": "freeCodeCamp AI Hint API - Socrates",
   "main": "dist/index.js",
   "engines": {
     "node": ">=18"

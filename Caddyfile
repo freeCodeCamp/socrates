@@ -1,7 +1,7 @@
-librarian-v1.freecodecamp.org {
+socrates.freecodecamp.dev {
 	# Enable access logs
 	log {
-		output file /var/log/caddy/librarian-access.log
+		output file /var/log/caddy/socrates-access.log
 		format json
 	}
 

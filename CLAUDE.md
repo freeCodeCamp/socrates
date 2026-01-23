@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The Librarian is a TypeScript Express API that generates pedagogical hints for freeCodeCamp challenges using the Groq LLM API (llama-3.3-70b-versatile). It provides intelligent, non-solution hints to guide students through HTML, CSS, JavaScript, and Python challenges.
+Socrates is a TypeScript Express API that generates pedagogical hints for freeCodeCamp challenges using the Groq LLM API (llama-3.3-70b-versatile). It provides intelligent, non-solution hints to guide students through HTML, CSS, JavaScript, and Python challenges.
 
 ## Common Commands
 

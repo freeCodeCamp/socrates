@@ -1,6 +1,6 @@
-# thelibrarian
+# socrates
 
-freeCodeCamp AI Hint API (The Librarian)
+freeCodeCamp AI Hint API (Socrates)
 
 This repository hosts a TypeScript Express API which returns pedagogical hints for freeCodeCamp challenges using Groq AI models.
 

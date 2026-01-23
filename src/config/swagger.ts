@@ -3,10 +3,10 @@ import swaggerJsdoc from 'swagger-jsdoc';
 const swaggerDefinition: swaggerJsdoc.SwaggerDefinition = {
   openapi: '3.0.0',
   info: {
-    title: 'The Librarian API',
+    title: 'Socrates API',
     version: '0.1.0',
     description:
-      'freeCodeCamp AI Hint API - The Librarian provides pedagogical coding hints powered by AI models.',
+      'freeCodeCamp AI Hint API - Socrates provides pedagogical coding hints powered by AI models.',
     license: {
       name: 'MIT',
     },

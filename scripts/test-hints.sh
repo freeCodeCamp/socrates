@@ -48,7 +48,7 @@ NC='\033[0m' # No Color
 
 print_header() {
     echo -e "\n${BLUE}════════════════════════════════════════════════════════════════${NC}"
-    echo -e "${BLUE}  The Librarian - Hint API Test Runner${NC}"
+    echo -e "${BLUE}  Socrates - Hint API Test Runner${NC}"
     echo -e "${BLUE}════════════════════════════════════════════════════════════════${NC}"
     echo -e "  Base URL: ${BASE_URL}"
     echo -e "  API Key:  ${API_KEY:0:8}..."
