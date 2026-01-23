@@ -27,11 +27,16 @@ export const MODEL_CB_COOLDOWN_MS = process.env.MODEL_CB_COOLDOWN_MS
   : 30000; // cooldown
 export const ENABLE_EXTENDED_HEALTH = process.env.ENABLE_EXTENDED_HEALTH === 'true';
 export const API_KEY = process.env.API_KEY || '';
+export const DOCS_BASIC_AUTH_USER = process.env.DOCS_BASIC_AUTH_USER || '';
+export const DOCS_BASIC_AUTH_PASS = process.env.DOCS_BASIC_AUTH_PASS || '';
 
-// Validate required environment variables in production
-if (isProd && !API_KEY) {
-  throw new Error('API_KEY environment variable is required in production');
+// Validate required environment variables
+if (!API_KEY) {
+  throw new Error('API_KEY environment variable is required');
 }
-if (isProd && !GROQ_API_KEY) {
-  throw new Error('GROQ_API_KEY environment variable is required in production');
+if (!GROQ_API_KEY) {
+  throw new Error('GROQ_API_KEY environment variable is required');
+}
+if (!DOCS_BASIC_AUTH_USER || !DOCS_BASIC_AUTH_PASS) {
+  throw new Error('DOCS_BASIC_AUTH_USER and DOCS_BASIC_AUTH_PASS are required');
 }
