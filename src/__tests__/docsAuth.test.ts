@@ -23,7 +23,7 @@ describe('docsAuthMiddleware', () => {
       status: vi.fn().mockReturnThis(),
       send: vi.fn(),
     };
-    next = vi.fn();
+    next = vi.fn() as unknown as NextFunction;
   });
 
   it('allows request with valid credentials', () => {
