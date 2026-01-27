@@ -68,7 +68,7 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          max_tokens: 200,
+          max_tokens: 1024,
           temperature: 0.5,
         },
         {
