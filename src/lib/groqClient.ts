@@ -2,7 +2,10 @@ import axios, { AxiosError } from 'axios';
 import {
   GROQ_API_KEY,
   GROQ_BACKOFF_BASE_MS,
+  GROQ_EMPTY_RESPONSE_RETRIES,
   GROQ_MAX_RETRIES,
+  GROQ_MAX_TOKENS,
+  GROQ_MAX_TOKENS_RETRY,
   GROQ_MODEL,
   GROQ_TIMEOUT_MS,
   MODEL_CB_COOLDOWN_MS,
@@ -36,27 +39,36 @@ function selectModel(challengeType?: ChallengeType): string {
   return typeSpecificModel || GROQ_MODEL;
 }
 
-export async function generateFromGroq(options: GroqRequestOptions): Promise<GroqResponse> {
-  const { systemPrompt, userPrompt, challengeType } = options;
-  const now = Date.now();
+// Circuit breaker state interface
+interface CircuitBreaker {
+  failures: number;
+  openedUntil: number;
+}
+
+interface GroqApiCallOptions {
+  systemPrompt: string;
+  userPrompt: string;
+  challengeType?: ChallengeType;
+  maxTokens: number;
+}
+
+interface GroqApiResult {
+  hint: string;
+  model_used: string;
+  completionTokens?: number;
+}
+
+/**
+ * Makes a single API call to Groq with retry logic for transient errors.
+ * Returns the result or throws an error.
+ */
+async function makeGroqApiCall(
+  options: GroqApiCallOptions,
+  cb: CircuitBreaker,
+): Promise<GroqApiResult> {
+  const { systemPrompt, userPrompt, challengeType, maxTokens } = options;
   let lastError: Error | null = null;
 
-  // Circuit breaker state (module-scoped)
-  interface CircuitBreaker {
-    failures: number;
-    openedUntil: number;
-  }
-
-  if (!(global as Record<string, unknown>)._groqCircuit) {
-    (global as Record<string, unknown>)._groqCircuit = { failures: 0, openedUntil: 0 };
-  }
-  const cb = (global as Record<string, unknown>)._groqCircuit as CircuitBreaker;
-
-  if (cb.openedUntil && cb.openedUntil > now) {
-    throw new ModelUnavailableError('Model circuit breaker is open');
-  }
-
-  // Try with exponential backoff
   const maxRetries = GROQ_MAX_RETRIES();
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -68,7 +80,7 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
           ],
-          max_tokens: 1024,
+          max_tokens: maxTokens,
           temperature: 0.5,
         },
         {
@@ -83,6 +95,7 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
       const data = res.data;
       const hint = data.choices?.[0]?.message?.content || '';
       const model_used = data.model || GROQ_MODEL;
+      const completionTokens = data.usage?.completion_tokens;
 
       // Log token usage and cache metrics for cost monitoring
       if (data.usage) {
@@ -100,13 +113,14 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
           cacheHitRate: `${cacheHitRate}%`,
           completionTokens: data.usage.completion_tokens,
           totalTokens: data.usage.total_tokens,
+          maxTokensUsed: maxTokens,
         });
       }
 
       // Reset circuit breaker on success
       cb.failures = 0;
 
-      return { hint: hint.trim(), model_used };
+      return { hint: hint.trim(), model_used, completionTokens };
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
 
@@ -118,8 +132,8 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
 
       logger.warn(`Groq request failed (attempt ${attempt}/${maxRetries}): ${lastError.message}`);
 
-      // Exponential backoff with jitter (only for last retry)
-      if (attempt < GROQ_MAX_RETRIES()) {
+      // Exponential backoff with jitter
+      if (attempt < maxRetries) {
         const backoff = Math.min(GROQ_BACKOFF_BASE_MS() * 2 ** attempt, 5000);
         const jitter = Math.floor(Math.random() * 200);
         await new Promise((resolve) => setTimeout(resolve, backoff + jitter));
@@ -131,6 +145,78 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
   const finalError = lastError || new Error('Groq generate failed');
   handleAllRetriesFailed(finalError, cb);
   throw finalError;
+}
+
+export async function generateFromGroq(options: GroqRequestOptions): Promise<GroqResponse> {
+  const { systemPrompt, userPrompt, challengeType } = options;
+  const now = Date.now();
+
+  if (!(global as Record<string, unknown>)._groqCircuit) {
+    (global as Record<string, unknown>)._groqCircuit = { failures: 0, openedUntil: 0 };
+  }
+  const cb = (global as Record<string, unknown>)._groqCircuit as CircuitBreaker;
+
+  if (cb.openedUntil && cb.openedUntil > now) {
+    throw new ModelUnavailableError('Model circuit breaker is open');
+  }
+
+  const initialMaxTokens = GROQ_MAX_TOKENS();
+  const retryMaxTokens = GROQ_MAX_TOKENS_RETRY();
+  const emptyResponseRetries = GROQ_EMPTY_RESPONSE_RETRIES();
+
+  // First attempt with standard max_tokens
+  const result = await makeGroqApiCall(
+    { systemPrompt, userPrompt, challengeType, maxTokens: initialMaxTokens },
+    cb,
+  );
+
+  // If we got a non-empty response, return it
+  if (result.hint.length > 0) {
+    return { hint: result.hint, model_used: result.model_used };
+  }
+
+  // Empty response detected - retry with higher max_tokens
+  logger.warn('Groq returned empty response, retrying with higher max_tokens', {
+    initialMaxTokens,
+    retryMaxTokens,
+    completionTokens: result.completionTokens,
+    challengeType: challengeType || 'unknown',
+  });
+
+  for (let emptyRetry = 1; emptyRetry <= emptyResponseRetries; emptyRetry++) {
+    const retryResult = await makeGroqApiCall(
+      { systemPrompt, userPrompt, challengeType, maxTokens: retryMaxTokens },
+      cb,
+    );
+
+    if (retryResult.hint.length > 0) {
+      logger.info('Groq retry with higher max_tokens succeeded', {
+        emptyRetryAttempt: emptyRetry,
+        retryMaxTokens,
+        challengeType: challengeType || 'unknown',
+      });
+      return { hint: retryResult.hint, model_used: retryResult.model_used };
+    }
+
+    logger.warn(
+      `Groq empty response retry ${emptyRetry}/${emptyResponseRetries} still returned empty`,
+      {
+        retryMaxTokens,
+        completionTokens: retryResult.completionTokens,
+        challengeType: challengeType || 'unknown',
+      },
+    );
+  }
+
+  // All retries exhausted, return empty result (let the caller handle it)
+  logger.error('Groq returned empty response after all retries', {
+    initialMaxTokens,
+    retryMaxTokens,
+    emptyResponseRetries,
+    challengeType: challengeType || 'unknown',
+  });
+
+  return { hint: '', model_used: result.model_used };
 }
 
 function isRetryableError(err: Error): boolean {

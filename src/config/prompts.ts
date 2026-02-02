@@ -311,7 +311,7 @@ Generate a helpful hint for this failing test. Remember:
 - Match the tone and style of freeCodeCamp's built-in hints`;
 
 // Maximum characters we'll allow in a prompt.
-// llama-3.3-70b-versatile supports 128K context (~512K chars).
+// gpt-oss-20b supports 128K context (~512K chars).
 // We set a conservative limit that allows for substantial user code while staying well within bounds.
 // ~32K chars ≈ 8K tokens, leaving plenty of room for the response.
 export const MAX_PROMPT_CHARS = 32000;

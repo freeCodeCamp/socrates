@@ -53,7 +53,7 @@ router.use(apiKeyAuthMiddleware);
  *                 summary: Successful hint response
  *                 value:
  *                   hint: "Your function is missing a return statement. Add 'return' before 'a + b' to return the sum."
- *                   model_used: llama-3.3-70b-versatile
+ *                   model_used: gpt-oss-20b
  *               fallback:
  *                 summary: Fallback hint when model is unavailable
  *                 value:

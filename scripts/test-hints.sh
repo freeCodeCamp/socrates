@@ -148,7 +148,7 @@ generate_report() {
         echo ""
         echo "**Date:** $(date)"
         echo "**Endpoint:** ${BASE_URL}/hint"
-        echo "**Model:** llama-3.3-70b-versatile (Groq)"
+        echo "**Model:** gpt-oss-20b (Groq)"
         echo ""
         echo "---"
         echo ""

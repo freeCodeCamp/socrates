@@ -37,7 +37,7 @@ describe('POST /hint', () => {
   it('returns generated hint for valid request (JSON default)', async () => {
     (generateFromGroq as any).mockResolvedValue({
       hint: 'Focus on closing tags',
-      model_used: 'llama-3.3-70b-versatile',
+      model_used: 'test-model',
     });
     const res = await request(app)
       .post('/hint')
@@ -54,15 +54,15 @@ describe('POST /hint', () => {
       .expect(200);
 
     expect(res.body.hint).toBe('Focus on closing tags');
-    expect(res.body.model_used).toBe('llama-3.3-70b-versatile');
-    expect(res.headers['x-model-used']).toBe('llama-3.3-70b-versatile');
+    expect(res.body.model_used).toBe('test-model');
+    expect(res.headers['x-model-used']).toBe('test-model');
     expect(res.headers['content-type']).toMatch(/application\/json/);
   });
 
   it('returns JSON hint if Accept: application/json is requested (explicit)', async () => {
     (generateFromGroq as any).mockResolvedValue({
       hint: 'JSON hint',
-      model_used: 'llama-3.3-70b-versatile',
+      model_used: 'test-model',
     });
 
     const res = await request(app)
@@ -78,7 +78,7 @@ describe('POST /hint', () => {
       .expect(200);
 
     expect(res.body.hint).toBe('JSON hint');
-    expect(res.body.model_used).toBe('llama-3.3-70b-versatile');
+    expect(res.body.model_used).toBe('test-model');
     expect(res.headers['content-type']).toMatch(/application\/json/);
   });
 

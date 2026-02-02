@@ -6,7 +6,7 @@ Socrates is a TypeScript Express API that provides hints for freeCodeCamp challe
 
 ## Features
 
-- Uses Groq's llama-3.3-70b-versatile model for hint generation
+- Uses Groq's gpt-oss-20b model for hint generation
 - Separate prompts tuned for HTML, CSS, JavaScript, and Python
 - API key authentication
 - Per-user and global rate limits
@@ -39,7 +39,7 @@ Generate a pedagogical hint for a coding challenge.
 ```json
 {
   "hint": "Your function is missing a return statement. Add 'return' before 'a + b'.",
-  "model_used": "llama-3.3-70b-versatile"
+  "model_used": "gpt-oss-20b"
 }
 ```
 

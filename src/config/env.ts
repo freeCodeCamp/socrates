@@ -16,6 +16,12 @@ export const GROQ_BACKOFF_BASE_MS = () =>
   process.env.GROQ_BACKOFF_BASE_MS ? Number(process.env.GROQ_BACKOFF_BASE_MS) : 500;
 export const GROQ_MAX_RETRIES = () =>
   process.env.GROQ_MAX_RETRIES ? Number(process.env.GROQ_MAX_RETRIES) : 2;
+export const GROQ_MAX_TOKENS = () =>
+  process.env.GROQ_MAX_TOKENS ? Number(process.env.GROQ_MAX_TOKENS) : 1024;
+export const GROQ_MAX_TOKENS_RETRY = () =>
+  process.env.GROQ_MAX_TOKENS_RETRY ? Number(process.env.GROQ_MAX_TOKENS_RETRY) : 2048;
+export const GROQ_EMPTY_RESPONSE_RETRIES = () =>
+  process.env.GROQ_EMPTY_RESPONSE_RETRIES ? Number(process.env.GROQ_EMPTY_RESPONSE_RETRIES) : 1;
 export const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 export const PER_USER_LIMIT = process.env.PER_USER_LIMIT ? Number(process.env.PER_USER_LIMIT) : 10; // requests per minute
 export const GLOBAL_LIMIT = process.env.GLOBAL_LIMIT ? Number(process.env.GLOBAL_LIMIT) : 1000; // requests per minute

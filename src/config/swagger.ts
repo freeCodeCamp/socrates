@@ -93,7 +93,7 @@ const swaggerDefinition: swaggerJsdoc.SwaggerDefinition = {
           model_used: {
             type: 'string',
             description: 'The AI model that generated the hint',
-            example: 'llama-3.3-70b-versatile',
+            example: 'gpt-oss-20b',
           },
         },
       },
@@ -199,7 +199,7 @@ const swaggerDefinition: swaggerJsdoc.SwaggerDefinition = {
         description: 'The AI model that processed the request',
         schema: {
           type: 'string',
-          example: 'llama-3.3-70b-versatile',
+          example: 'gpt-oss-20b',
         },
       },
       'X-Model-Available': {
