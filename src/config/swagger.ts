@@ -1,3 +1,5 @@
+import { SERVER_URL } from './env';
+
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -11,12 +13,7 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: 'https://socrates.freecodecamp.dev',
-      description: 'Production server',
-    },
-    {
-      url: 'http://localhost:3000',
-      description: 'Development server',
+      url: SERVER_URL,
     },
   ],
   components: {

@@ -33,6 +33,7 @@ export const MODEL_CB_COOLDOWN_MS = process.env.MODEL_CB_COOLDOWN_MS
   : 30000; // cooldown
 export const ENABLE_EXTENDED_HEALTH = process.env.ENABLE_EXTENDED_HEALTH === 'true';
 export const API_KEY = process.env.API_KEY || '';
+export const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 export const DOCS_BASIC_AUTH_USER = process.env.DOCS_BASIC_AUTH_USER || '';
 export const DOCS_BASIC_AUTH_PASS = process.env.DOCS_BASIC_AUTH_PASS || '';
 
