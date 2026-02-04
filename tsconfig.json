@@ -10,7 +10,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node", "vitest/globals"],
+    "types": ["node"],
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "declaration": true,

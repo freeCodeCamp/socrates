@@ -1,3 +1,7 @@
+export interface ApiError extends Error {
+  status?: number;
+}
+
 export interface HintRequest {
   userId?: string;
   challengeType?: 'html' | 'css' | 'javascript' | 'python';

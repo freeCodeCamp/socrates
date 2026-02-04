@@ -1,4 +1,4 @@
-import type { ApiError } from '../middleware/errorHandler';
+import type { ApiError } from '../types/api';
 
 export class GroqApiError extends Error implements ApiError {
   status: number;

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { NextFunction, Request, Response } from 'express';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { GLOBAL_LIMIT, PER_USER_LIMIT } from '../config/env';
 import { logger } from '../config/logger';
 import redis from '../config/redis';
@@ -41,21 +41,22 @@ let LUA_TOKEN_BUCKET_SHA: string | null = null;
     );
   });
 
-export function rateLimiterMiddleware(opts?: RateLimiterOptions) {
+export function rateLimiterHook(opts?: RateLimiterOptions) {
   const redisClient = opts?.redisClient || redis;
   const perUserCap = opts?.perUserLimit || PER_USER_LIMIT;
   const globalCap = opts?.globalLimit || GLOBAL_LIMIT;
   const perUserRate = tokensPerMs(perUserCap);
   const globalRate = tokensPerMs(globalCap);
 
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const identifier = req.body?.userId || req.ip || 'anonymous';
+      const body = request.body as any;
+      const identifier = body?.userId || request.ip || 'anonymous';
       const now = nowMs();
 
       // Keys
       const userKey = `rate:user:${identifier}`;
-      const globalKey = `rate:global`;
+      const globalKey = 'rate:global';
       const ttl = 3600; // seconds
       // Call Lua script atomically
       const args = [now, perUserCap, perUserRate, globalCap, globalRate, ttl];
@@ -86,28 +87,25 @@ export function rateLimiterMiddleware(opts?: RateLimiterOptions) {
       const globalRemaining = Math.floor(Number(evalResult[3]));
 
       if (userAllowed < 1) {
-        res.set('Retry-After', '60');
-        res.set('X-RateLimit-Limit', String(perUserCap));
-        res.set('X-RateLimit-Remaining', String(userRemaining));
-        return res.status(429).json({ message: 'Too many requests (per-user)' });
+        reply.header('Retry-After', '60');
+        reply.header('X-RateLimit-Limit', String(perUserCap));
+        reply.header('X-RateLimit-Remaining', String(userRemaining));
+        return reply.status(429).send({ message: 'Too many requests (per-user)' });
       }
       if (globalAllowed < 1) {
-        res.set('Retry-After', '60');
-        res.set('X-RateLimit-Limit', String(globalCap));
-        res.set('X-RateLimit-Remaining', String(globalRemaining));
-        return res.status(429).json({ message: 'Too many requests (global)' });
+        reply.header('Retry-After', '60');
+        reply.header('X-RateLimit-Limit', String(globalCap));
+        reply.header('X-RateLimit-Remaining', String(globalRemaining));
+        return reply.status(429).send({ message: 'Too many requests (global)' });
       }
 
-      res.set('X-RateLimit-Limit', String(perUserCap));
-      res.set('X-RateLimit-Remaining', String(userRemaining));
-
-      return next();
+      reply.header('X-RateLimit-Limit', String(perUserCap));
+      reply.header('X-RateLimit-Remaining', String(userRemaining));
     } catch (err: any) {
       logger.warn(`Rate limiter encountered an error, allowing request: ${err?.message || err}`);
       // Allow request through if Redis or logic fails
-      return next();
     }
   };
 }
 
-export default rateLimiterMiddleware;
+export default rateLimiterHook;

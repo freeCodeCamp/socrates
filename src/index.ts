@@ -1,65 +1,70 @@
-import * as bodyParser from 'body-parser';
-import cors from 'cors';
-import express, { type Application, type Request, type Response } from 'express';
-import helmet from 'helmet';
-import swaggerUi from 'swagger-ui-express';
+import cors from '@fastify/cors';
+import helmet from '@fastify/helmet';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
+import Fastify from 'fastify';
 import { ALLOWED_ORIGINS, NODE_ENV, PORT } from './config/env';
 import { logger } from './config/logger';
-import swaggerSpec from './config/swagger';
-import rateLimiter from './lib/rateLimiter';
-import docsAuthMiddleware from './middleware/docsAuth';
+import swaggerDefinition, { sharedSchemas } from './config/swagger';
+import rateLimiterHook from './lib/rateLimiter';
+import docsAuthHook from './middleware/docsAuth';
 import { errorHandler } from './middleware/errorHandler';
-import { requestLogger, simpleLogger } from './middleware/logger';
-import healthRouter from './routes/health';
-import hintRouter from './routes/hint';
+import { simpleLogger } from './middleware/logger';
+import healthRoutes from './routes/health';
+import hintRoutes from './routes/hint';
 
-const app: Application = express();
+const app = Fastify({ logger: false });
 
-// Middleware
-app.use(helmet());
-// Configure CORS to be limited to ALLOWED_ORIGINS env. Default '*' (dev)
-const corsOptions: cors.CorsOptions = {
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow server-to-server or curl
-    if (ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin))
-      return callback(null, true);
-    callback(new Error('CORS: origin not allowed'));
+// Security headers - disable CSP globally to allow swagger-ui inline styles/scripts
+app.register(helmet, { contentSecurityPolicy: false });
+
+// CORS - limited to ALLOWED_ORIGINS env. Default '*' (dev)
+app.register(cors, {
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // allow server-to-server or curl
+    if (ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error('CORS: origin not allowed'), false);
   },
-};
-
-app.use(cors(corsOptions));
-app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(requestLogger);
-app.use(simpleLogger);
-
-// Swagger UI - disable CSP for this route to allow inline styles/scripts
-app.use('/api-docs', docsAuthMiddleware);
-app.use('/api-docs', (_req, res, next) => {
-  res.removeHeader('Content-Security-Policy');
-  next();
 });
-app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, {
-    customSiteTitle: 'Socrates API Docs',
-  }),
-);
 
-// OpenAPI JSON spec endpoint
-app.get('/api-docs.json', docsAuthMiddleware, (_req: Request, res: Response) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
+// Swagger - must be registered before routes for route discovery
+// biome-ignore lint/suspicious/noExplicitAny: swagger definition types are overly strict
+app.register(swagger, { openapi: swaggerDefinition as any });
+
+// Register shared JSON schemas so route $ref references resolve for both serialization and OpenAPI
+for (const schema of sharedSchemas) {
+  app.addSchema(schema);
+}
+app.register(swaggerUi, {
+  routePrefix: '/api-docs',
+  uiConfig: {
+    docExpansion: 'list',
+  },
+  uiHooks: {
+    onRequest: docsAuthHook,
+  },
+  theme: {
+    title: 'Socrates API Docs',
+  },
 });
+
+// Logging hook (replaces morgan + simpleLogger)
+app.addHook('onResponse', simpleLogger);
+
+// Error handler
+app.setErrorHandler(errorHandler);
 
 // Routes
-app.use('/health', healthRouter);
-// Rate-limit the /hint endpoint per user and globally
-app.use('/hint', rateLimiter(), hintRouter);
+app.register(healthRoutes);
 
-app.get('/', (_req: Request, res: Response) => {
-  res.json({
+// Rate-limit the /hint endpoint per user and globally
+app.register(async (instance) => {
+  instance.addHook('preHandler', rateLimiterHook());
+  instance.register(hintRoutes);
+});
+
+app.get('/', async (_request, reply) => {
+  return reply.send({
     message: 'socrates API - ready',
     description: 'Visit /health for status',
     docs: '/api-docs',
@@ -67,12 +72,9 @@ app.get('/', (_req: Request, res: Response) => {
 });
 
 // Not found
-app.use((_req, res) => {
-  res.status(404).json({ message: 'Not Found' });
+app.setNotFoundHandler(async (_request, reply) => {
+  return reply.status(404).send({ message: 'Not Found' });
 });
-
-// Error handler
-app.use(errorHandler);
 
 // Graceful shutdown and error events
 process.on('unhandledRejection', (reason) => {
@@ -83,6 +85,14 @@ process.on('uncaughtException', (err) => {
   process.exit(1);
 });
 
-app.listen(PORT, () => {
-  logger.info(`Server listening on port ${PORT} in ${NODE_ENV} mode`);
-});
+const start = async () => {
+  try {
+    await app.listen({ port: PORT, host: '0.0.0.0' });
+    logger.info(`Server listening on port ${PORT} in ${NODE_ENV} mode`);
+  } catch (err) {
+    logger.error(err);
+    process.exit(1);
+  }
+};
+
+start();
