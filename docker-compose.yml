@@ -1,12 +1,15 @@
 services:
   app:
-    build: .
-    container_name: socrates
-    ports:
-      - '3000:3000'
-    env_file: .env
+    build:
+      context: .
+      target: production
+    env_file:
+      - .env
     environment:
-      - REDIS_URL=redis://redis:6379
+      NODE_ENV: production
+      REDIS_URL: redis://redis:6379
+    ports:
+      - '${PORT:-3000}:3000'
     depends_on:
       redis:
         condition: service_healthy
@@ -14,15 +17,13 @@ services:
       test: ['CMD', 'wget', '--no-verbose', '--spider', 'http://localhost:3000/health']
       interval: 30s
       timeout: 5s
-      start_period: 10s
+      start_period: 15s
       retries: 3
     restart: unless-stopped
 
   redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - '6379:6379'
+    image: redis:7.2-alpine
+    command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - redis_data:/data
     healthcheck:
@@ -31,7 +32,6 @@ services:
       timeout: 5s
       retries: 3
     restart: unless-stopped
-    command: redis-server --appendonly yes
 
 volumes:
   redis_data:
