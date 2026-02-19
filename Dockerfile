@@ -1,12 +1,12 @@
 # Stage 1 — Install dependencies
-FROM node:22-alpine AS deps
+FROM node:24-bookworm-slim AS deps
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Stage 2 — Build TypeScript and prune dev dependencies
-FROM node:22-alpine AS build
+FROM node:24-bookworm-slim AS build
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -16,9 +16,12 @@ RUN pnpm run build
 RUN pnpm prune --prod
 
 # Stage 3 — Production image
-FROM node:22-alpine AS production
-RUN apk add --no-cache tini
-RUN addgroup -g 1001 appgroup && adduser -u 1001 -G appgroup -s /bin/sh -D appuser
+FROM node:24-bookworm-slim AS production
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends tini wget \
+  && rm -rf /var/lib/apt/lists/*
+RUN groupadd --gid 1001 appgroup \
+  && useradd --uid 1001 --gid appgroup --shell /usr/sbin/nologin --create-home appuser
 WORKDIR /app
 COPY --from=build --chown=appuser:appgroup /app/node_modules ./node_modules
 COPY --from=build --chown=appuser:appgroup /app/dist ./dist
