@@ -1,30 +1,30 @@
 # Socrates
 
-freeCodeCamp AI Hint API
+freeCodeCamp's hint API for coding challenges. When a camper is stuck, Socrates
+takes their code, the challenge description, and failing tests, then returns a
+hint that points them in the right direction without giving the answer away.
 
-Socrates is a TypeScript Fastify API that provides pedagogical hints for
-freeCodeCamp challenges using Groq AI models. It gives students nudges without
-revealing solutions and supports HTML, CSS, JavaScript, and Python challenges.
+Built with Fastify and TypeScript. Uses Groq for inference (gpt-oss-20b by
+default). Supports HTML, CSS, JavaScript, and Python challenges, each with its
+own system prompt.
 
-## Features
+## How it works
 
-- Uses Groq's gpt-oss-20b model for hint generation
-- Challenge-type specific prompt templates (HTML, CSS, JavaScript, Python)
-- API key authentication
-- Redis-backed per-user and global token bucket rate limiting
-- Circuit breaker and retry logic around Groq requests
-- Health check endpoint with optional extended dependency checks
-- Swagger UI docs protected by basic auth at `/api-docs`
+- Camper's code, challenge description, and failing tests go in
+- A challenge-type-specific prompt is built and sent to Groq
+- The response is stripped of any code patterns and returned as a plain-text hint
+- Per-user and global rate limiting (Redis token buckets) prevent abuse
+- Circuit breaker on the Groq client opens after repeated failures
 
-## API Endpoints
+## API endpoints
 
 ### `POST /hint`
 
-Generate a pedagogical hint for a coding challenge.
+Returns a hint for the given challenge context.
 
-**Authentication:** Requires `X-API-Key` header (outside development/testing)
+Requires an `X-API-Key` header outside of development/testing.
 
-**Request Body:**
+Request body:
 
 ```json
 {
@@ -37,7 +37,7 @@ Generate a pedagogical hint for a coding challenge.
 }
 ```
 
-**Response:**
+Response:
 
 ```json
 {
@@ -48,69 +48,58 @@ Generate a pedagogical hint for a coding challenge.
 
 ### `GET /health`
 
-Health check endpoint. Returns service status and uptime.
+Returns service status and uptime. Pass `?extended=true` to also check Redis
+and Groq connectivity.
 
 ### `GET /api-docs`
 
-Swagger UI for API documentation. Protected by HTTP basic auth.
-
-## Documentation
-
-Full API documentation is available at `/api-docs` when the service is running.
+Swagger UI, protected by HTTP basic auth.
 
 ## Development
 
-**Prerequisites:**
-
-- Node.js >= 18 (Node 24 recommended for container builds)
-- pnpm
-- Redis (for rate limiting)
-
-**Setup:**
+You need Node.js 18+ (24 recommended for container builds), pnpm, and Redis.
 
 ```bash
-# Install dependencies
 pnpm install
-
-# Copy environment variables
 cp .env.example .env
-
-# Start development server
 pnpm run dev
 ```
 
-Optional local Redis via containers:
+If you need a local Redis instance:
 
 ```bash
 podman compose up -d redis
 ```
 
-**Available Scripts:**
+### Scripts
 
 ```bash
-pnpm run dev           # Start dev server with hot reload (nodemon)
+pnpm run dev           # Dev server with hot reload (nodemon)
 pnpm run build         # Compile TypeScript and copy lib/ to dist/
-pnpm run start         # Run compiled production build
-pnpm run test:manual   # Run shell-script smoke tests against a running server
+pnpm run start         # Run production build
+pnpm run test:manual   # Smoke tests against a running server
 pnpm run lint          # Lint and auto-fix with Biome
 pnpm run format        # Format with Biome
 pnpm run check         # Check without auto-fix
 pnpm run generate-api-key
 ```
 
-**Environment Variables:**
+### Environment variables
 
-- `PORT` - Server port (default: 3000)
-- `NODE_ENV` - App environment (`development` by default)
-- `API_KEY` - API key for authentication
-- `GROQ_API_KEY` - Groq API key
-- `REDIS_URL` - Redis connection URL
-- `PER_USER_LIMIT` - Per-user requests per minute (default: 10)
-- `GLOBAL_LIMIT` - Global requests per minute (default: 1000)
-- `DOCS_BASIC_AUTH_USER` - Basic auth user for `/api-docs`
-- `DOCS_BASIC_AUTH_PASS` - Basic auth password for `/api-docs`
+| Variable | Purpose | Default |
+|---|---|---|
+| `PORT` | Server port | 3000 |
+| `NODE_ENV` | App environment | development |
+| `API_KEY` | Auth key for `/hint` | -- |
+| `GROQ_API_KEY` | Groq API key | -- |
+| `REDIS_URL` | Redis connection URL | -- |
+| `PER_USER_LIMIT` | Requests per user per minute | 10 |
+| `GLOBAL_LIMIT` | Global requests per minute | 1000 |
+| `DOCS_BASIC_AUTH_USER` | Basic auth user for `/api-docs` | -- |
+| `DOCS_BASIC_AUTH_PASS` | Basic auth password for `/api-docs` | -- |
 
-See `.env.example` for the full list, including model and circuit-breaker tuning.
+See `.env.example` for the full list, including model and circuit-breaker
+settings.
 
 ## License
 
