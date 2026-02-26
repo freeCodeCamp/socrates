@@ -28,7 +28,6 @@ app.register(cors, {
 });
 
 // Swagger - must be registered before routes for route discovery
-// biome-ignore lint/suspicious/noExplicitAny: swagger definition types are overly strict
 app.register(swagger, { openapi: swaggerDefinition as any });
 
 // Register shared JSON schemas so route $ref references resolve for both serialization and OpenAPI
