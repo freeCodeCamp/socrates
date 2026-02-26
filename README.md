@@ -86,17 +86,17 @@ pnpm run generate-api-key
 
 ### Environment variables
 
-| Variable | Purpose | Default |
-|---|---|---|
-| `PORT` | Server port | 3000 |
-| `NODE_ENV` | App environment | development |
-| `API_KEY` | Auth key for `/hint` | -- |
-| `GROQ_API_KEY` | Groq API key | -- |
-| `REDIS_URL` | Redis connection URL | -- |
-| `PER_USER_LIMIT` | Requests per user per minute | 10 |
-| `GLOBAL_LIMIT` | Global requests per minute | 1000 |
-| `DOCS_BASIC_AUTH_USER` | Basic auth user for `/api-docs` | -- |
-| `DOCS_BASIC_AUTH_PASS` | Basic auth password for `/api-docs` | -- |
+| Variable               | Purpose                             | Default     |
+| ---------------------- | ----------------------------------- | ----------- |
+| `PORT`                 | Server port                         | 3000        |
+| `NODE_ENV`             | App environment                     | development |
+| `API_KEY`              | Auth key for `/hint`                | --          |
+| `GROQ_API_KEY`         | Groq API key                        | --          |
+| `REDIS_URL`            | Redis connection URL                | --          |
+| `PER_USER_LIMIT`       | Requests per user per minute        | 10          |
+| `GLOBAL_LIMIT`         | Global requests per minute          | 1000        |
+| `DOCS_BASIC_AUTH_USER` | Basic auth user for `/api-docs`     | --          |
+| `DOCS_BASIC_AUTH_PASS` | Basic auth password for `/api-docs` | --          |
 
 See `.env.example` for the full list, including model and circuit-breaker
 settings.

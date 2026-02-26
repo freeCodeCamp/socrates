@@ -17,9 +17,9 @@ pnpm run dev              # Dev server with hot reload (nodemon + ts-node)
 pnpm run build            # Compile TypeScript and copy lib/ to dist/
 pnpm run start            # Run compiled production build
 pnpm run test:manual      # Shell-script smoke tests against a running server
-pnpm run lint             # Lint and auto-fix with Biome
-pnpm run format           # Format with Biome
-pnpm run check            # Check without auto-fix
+pnpm run lint             # Lint with oxlint
+pnpm run format           # Format with Prettier
+pnpm run check            # oxlint + prettier --check
 ```
 
 ## Architecture
@@ -51,10 +51,8 @@ Fastify API (`src/index.ts`) with three route groups:
 
 ## Code style
 
-- Biome for linting and formatting.
+- oxlint for linting, Prettier for formatting.
 - Single quotes, semicolons, 2-space indent, 100-char line width.
-- Pre-commit hook runs `biome check --write` on staged files via Husky +
-  lint-staged.
 
 ## Infrastructure
 
