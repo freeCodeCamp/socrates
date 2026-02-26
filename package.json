@@ -17,6 +17,9 @@
     "format:legacy": "prettier --write 'src/**/*.{ts,tsx,json,md,js}'",
     "check": "biome check .",
     "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
     "test:manual": "bash ./scripts/test-hints.sh",
     "generate-api-key": "ts-node scripts/generate-api-key.ts"
   },
@@ -44,6 +47,7 @@
     "nodemon": "^2.0.22",
     "prettier": "^3.0.0",
     "ts-node": "^10.9.1",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.18"
   }
 }
