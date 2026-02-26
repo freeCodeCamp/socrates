@@ -6,6 +6,7 @@
   "engines": {
     "node": ">=18"
   },
+  "packageManager": "pnpm@10.30.3",
   "scripts": {
     "dev": "nodemon",
     "build": "tsc -p . && cp -r src/lib dist/",
