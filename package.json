@@ -4,7 +4,7 @@
   "description": "freeCodeCamp AI Hint API - Socrates",
   "main": "dist/index.js",
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   },
   "scripts": {
     "dev": "nodemon",
@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.8",
-    "@types/node": "^20.8.2",
+    "@types/node": "^24.10.14",
     "@types/winston": "^2.4.4",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "eslint": "^8.0.0",
