@@ -20,7 +20,7 @@ on:
         options:
           - gantry
           - full
-        default: 'full'
+        default: 'gantry'
   workflow_call:
     inputs:
       environment:
