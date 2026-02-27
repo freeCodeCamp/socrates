@@ -103,7 +103,7 @@ jobs:
     needs: [setup-jobs, build]
     permissions:
       deployments: write
-    uses: ./.github/workflows/cd-deploy.yml
+    uses: ./.github/workflows/deploy.yml
     with:
       environment: ${{ inputs.environment }}
       deployment_version: ${{ needs.build.outputs.tagname }}
