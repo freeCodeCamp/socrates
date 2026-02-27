@@ -20,7 +20,7 @@ on:
         default: 'skip'
 
 concurrency:
-  group: build-socrates-${{ inputs.environment }}
+  group: build-socrates-${{ github.event.inputs.environment }}
   cancel-in-progress: false
 
 jobs:
@@ -101,6 +101,8 @@ jobs:
     name: Deploy
     if: inputs.deploy_mode != 'skip'
     needs: [setup-jobs, build]
+    permissions:
+      deployments: write
     uses: ./.github/workflows/cd-deploy.yml
     with:
       environment: ${{ inputs.environment }}

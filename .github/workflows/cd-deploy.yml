@@ -47,7 +47,7 @@ on:
         required: false
 
 concurrency:
-  group: deploy-socrates-${{ inputs.environment }}
+  group: deploy-socrates-${{ github.event.inputs.environment || inputs.environment }}
   cancel-in-progress: false
 
 jobs:
