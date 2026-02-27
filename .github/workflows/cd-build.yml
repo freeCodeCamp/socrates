@@ -14,19 +14,20 @@ on:
         description: 'Deploy mode after build'
         type: choice
         options:
+          - skip
           - gantry
           - full
-          - skip
-        default: 'gantry'
+        default: 'skip'
 
 concurrency:
-  group: build-socrates-${{ github.event.inputs.environment }}
+  group: build-socrates-${{ inputs.environment }}
   cancel-in-progress: false
 
 jobs:
   setup-jobs:
     name: Setup Jobs
     runs-on: ubuntu-24.04
+    permissions: {}
     outputs:
       deployment_env: ${{ steps.setup.outputs.deployment_env }}
       tgt_env_short: ${{ steps.setup.outputs.tgt_env_short }}
@@ -34,8 +35,10 @@ jobs:
     steps:
       - name: Setup
         id: setup
+        env:
+          SELECTED_ENV: ${{ inputs.environment }}
         run: |
-          ENV="${{ inputs.environment }}"
+          ENV="$SELECTED_ENV"
           echo "Selected environment: $ENV"
 
           case "$ENV" in

@@ -20,7 +20,7 @@ on:
         options:
           - gantry
           - full
-        default: 'full'
+        default: 'gantry'
   workflow_call:
     inputs:
       environment:
@@ -32,7 +32,6 @@ on:
       deploy_mode:
         type: string
         required: true
-        default: 'gantry'
     secrets:
       TS_OAUTH_CLIENT_ID:
         required: true
@@ -55,15 +54,27 @@ jobs:
   setup-jobs:
     name: Setup Jobs
     runs-on: ubuntu-24.04
+    permissions: {}
     outputs:
       deployment_env: ${{ steps.setup.outputs.deployment_env }}
       tgt_env_short: ${{ steps.setup.outputs.tgt_env_short }}
       stack_name: ${{ steps.setup.outputs.stack_name }}
     steps:
+      - name: Validate deploy_mode
+        env:
+          DEPLOY_MODE: ${{ inputs.deploy_mode }}
+        run: |
+          if [[ "$DEPLOY_MODE" != "gantry" && "$DEPLOY_MODE" != "full" ]]; then
+            echo "ERROR: Invalid deploy_mode '$DEPLOY_MODE'. Must be 'gantry' or 'full'."
+            exit 1
+          fi
+
       - name: Setup
         id: setup
+        env:
+          SELECTED_ENV: ${{ inputs.environment }}
         run: |
-          ENV="${{ inputs.environment }}"
+          ENV="$SELECTED_ENV"
           echo "Selected environment: $ENV"
 
           case "$ENV" in
