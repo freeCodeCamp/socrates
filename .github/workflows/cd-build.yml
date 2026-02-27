@@ -14,10 +14,10 @@ on:
         description: 'Deploy mode after build'
         type: choice
         options:
+          - skip
           - gantry
           - full
-          - skip
-        default: 'gantry'
+        default: 'skip'
 
 concurrency:
   group: build-socrates-${{ github.event.inputs.environment }}
