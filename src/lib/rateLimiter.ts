@@ -4,6 +4,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { GLOBAL_LIMIT, PER_USER_LIMIT } from '../config/env';
 import { logger } from '../config/logger';
 import redis from '../config/redis';
+import type { RawRequestBody } from '../types/sanitizer';
 
 export interface RateLimiterOptions {
   redisClient?: typeof redis;
@@ -28,16 +29,15 @@ const LUA_TOKEN_BUCKET = fs.readFileSync(
 
 let LUA_TOKEN_BUCKET_SHA: string | null = null;
 // Try to load script automatically; if it fails we still proceed and fallback to eval
-// Use any to avoid typing issues in types for script() - accept that ioredis has various overloads.
-(redis as any)
+(redis as unknown as { script: (cmd: string, lua: string) => Promise<string> })
   .script('load', LUA_TOKEN_BUCKET)
   .then((sha: string) => {
     LUA_TOKEN_BUCKET_SHA = sha;
     logger.info(`Loaded rate-limiter script into Redis with SHA: ${sha}`);
   })
-  .catch((err: any) => {
+  .catch((err: unknown) => {
     logger.info(
-      `Could not pre-load Lua script into Redis; will fallback to EVAL: ${err?.message || err}`,
+      `Could not pre-load Lua script into Redis; will fallback to EVAL: ${err instanceof Error ? err.message : String(err)}`,
     );
   });
 
@@ -50,7 +50,7 @@ export function rateLimiterHook(opts?: RateLimiterOptions) {
 
   return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const body = request.body as any;
+      const body = request.body as RawRequestBody | undefined;
       const identifier = body?.userId || request.ip || 'anonymous';
       const now = nowMs();
 
@@ -62,24 +62,41 @@ export function rateLimiterHook(opts?: RateLimiterOptions) {
       const args = [now, perUserCap, perUserRate, globalCap, globalRate, ttl];
       // First, try EVALSHA if we have a SHA; otherwise fallback to EVAL
       let evalResultRaw: unknown;
+      const stringArgs = args.map(String);
       if (LUA_TOKEN_BUCKET_SHA) {
         try {
-          evalResultRaw = await (redisClient as any).evalsha(
+          evalResultRaw = await redisClient.call(
+            'EVALSHA',
             LUA_TOKEN_BUCKET_SHA,
-            2,
+            '2',
             userKey,
             globalKey,
-            ...args,
+            ...stringArgs,
           );
-        } catch (err: any) {
-          // NOSCRIPT or other issues: fallback to EVAL
-          logger.info(`EVALSHA failed, falling back to EVAL: ${err?.message || err}`);
-          evalResultRaw = await redisClient.eval(LUA_TOKEN_BUCKET, 2, userKey, globalKey, ...args);
+        } catch (err: unknown) {
+          logger.info(
+            `EVALSHA failed, falling back to EVAL: ${err instanceof Error ? err.message : String(err)}`,
+          );
+          evalResultRaw = await redisClient.call(
+            'EVAL',
+            LUA_TOKEN_BUCKET,
+            '2',
+            userKey,
+            globalKey,
+            ...stringArgs,
+          );
         }
       } else {
-        evalResultRaw = await redisClient.eval(LUA_TOKEN_BUCKET, 2, userKey, globalKey, ...args);
+        evalResultRaw = await redisClient.call(
+          'EVAL',
+          LUA_TOKEN_BUCKET,
+          '2',
+          userKey,
+          globalKey,
+          ...stringArgs,
+        );
       }
-      const evalResult = evalResultRaw as unknown as any[];
+      const evalResult = evalResultRaw as [number, number, number, number];
       // evalResult should be [userAllowed, userRemaining, globalAllowed, globalRemaining]
       const userAllowed = Number(evalResult[0]);
       const userRemaining = Math.floor(Number(evalResult[1]));
@@ -101,8 +118,10 @@ export function rateLimiterHook(opts?: RateLimiterOptions) {
 
       reply.header('X-RateLimit-Limit', String(perUserCap));
       reply.header('X-RateLimit-Remaining', String(userRemaining));
-    } catch (err: any) {
-      logger.warn(`Rate limiter encountered an error, allowing request: ${err?.message || err}`);
+    } catch (err: unknown) {
+      logger.warn(
+        `Rate limiter encountered an error, allowing request: ${err instanceof Error ? err.message : String(err)}`,
+      );
       // Allow request through if Redis or logic fails
     }
   };

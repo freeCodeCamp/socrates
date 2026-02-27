@@ -57,7 +57,7 @@ Swagger UI, protected by HTTP basic auth.
 
 ## Development
 
-You need Node.js 18+ (24 recommended for container builds), pnpm, and Redis.
+You need Node.js 24+, pnpm 10, and Redis.
 
 ```bash
 pnpm install
@@ -68,7 +68,7 @@ pnpm run dev
 If you need a local Redis instance:
 
 ```bash
-podman compose up -d redis
+docker compose up -d redis
 ```
 
 ### Scripts
@@ -77,10 +77,13 @@ podman compose up -d redis
 pnpm run dev           # Dev server with hot reload (nodemon)
 pnpm run build         # Compile TypeScript and copy lib/ to dist/
 pnpm run start         # Run production build
+pnpm run test          # Run tests (Vitest)
+pnpm run test:watch    # Run tests in watch mode
+pnpm run typecheck     # Type-check without emitting
+pnpm run lint          # Lint with oxlint
+pnpm run format        # Format with Prettier
+pnpm run check         # oxlint + prettier --check
 pnpm run test:manual   # Smoke tests against a running server
-pnpm run lint          # Lint and auto-fix with Biome
-pnpm run format        # Format with Biome
-pnpm run check         # Check without auto-fix
 pnpm run generate-api-key
 ```
 

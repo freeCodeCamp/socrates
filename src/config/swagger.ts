@@ -1,6 +1,6 @@
 import { SERVER_URL } from './env';
 
-const swaggerDefinition = {
+const swaggerDefinition: Record<string, unknown> = {
   openapi: '3.0.0',
   info: {
     title: 'Socrates API',

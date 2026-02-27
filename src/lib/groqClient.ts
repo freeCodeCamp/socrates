@@ -45,6 +45,8 @@ interface CircuitBreaker {
   openedUntil: number;
 }
 
+const circuitBreaker: CircuitBreaker = { failures: 0, openedUntil: 0 };
+
 interface GroqApiCallOptions {
   systemPrompt: string;
   userPrompt: string;
@@ -151,10 +153,7 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
   const { systemPrompt, userPrompt, challengeType } = options;
   const now = Date.now();
 
-  if (!(global as Record<string, unknown>)._groqCircuit) {
-    (global as Record<string, unknown>)._groqCircuit = { failures: 0, openedUntil: 0 };
-  }
-  const cb = (global as Record<string, unknown>)._groqCircuit as CircuitBreaker;
+  const cb = circuitBreaker;
 
   if (cb.openedUntil && cb.openedUntil > now) {
     throw new ModelUnavailableError('Model circuit breaker is open');
