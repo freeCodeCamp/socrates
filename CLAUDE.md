@@ -1,7 +1,6 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code when working with this repository.
-Per-directory CLAUDE.md files in `src/` subdirectories cover individual modules.
 
 ## Project overview
 
@@ -14,12 +13,15 @@ JavaScript, and Python challenges.
 
 ```bash
 pnpm run dev              # Dev server with hot reload (nodemon + ts-node)
-pnpm run build            # Compile TypeScript and copy lib/ to dist/
+pnpm run build            # Compile TypeScript and copy Lua scripts to dist/
 pnpm run start            # Run compiled production build
-pnpm run test:manual      # Shell-script smoke tests against a running server
+pnpm run test             # Run tests (Vitest)
+pnpm run test:watch       # Run tests in watch mode
+pnpm run typecheck        # Type-check without emitting
 pnpm run lint             # Lint with oxlint
 pnpm run format           # Format with Prettier
 pnpm run check            # oxlint + prettier --check
+pnpm run test:manual      # Shell-script smoke tests against a running server
 ```
 
 ## Architecture
@@ -29,7 +31,7 @@ Fastify API (`src/index.ts`) with three route groups:
 - `POST /hint` -- main endpoint. API key auth + Redis rate limiter. Sanitizes
   input, builds a prompt, calls Groq, sanitizes the output.
 - `GET /health` -- health check with optional extended mode (Redis + Groq).
-- `GET /api-docs` -- Swagger UI, protected by HTTP Basic Auth.
+- `GET /api-docs` -- Swagger UI, development only. Optional Basic Auth.
 
 ### Fastify patterns
 
@@ -53,10 +55,15 @@ Fastify API (`src/index.ts`) with three route groups:
 
 - oxlint for linting, Prettier for formatting.
 - Single quotes, semicolons, 2-space indent, 100-char line width.
+- `no-explicit-any` is enforced as error. Use `unknown` with type guards.
+- Tests use Vitest. Test files live in `__tests__/` directories alongside source.
 
 ## Infrastructure
 
-- Redis for rate limiting. `docker compose up -d` starts a local Redis 7.
+- Redis for rate limiting. `docker compose up -d redis` starts a local Redis 7.
+- `docker compose up -d` builds and runs the full stack (app + Redis).
 - Groq API for LLM inference. Different models per challenge type (configurable
   via env).
 - Challenge types: `html`, `css`, `javascript`, `python`.
+- Swagger UI (`/api-docs`) is only registered in development.
+- Required env vars: `API_KEY`, `GROQ_API_KEY`. See `.env.example`.
