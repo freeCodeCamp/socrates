@@ -253,7 +253,6 @@ jobs:
 
             REQUIRED_VARS=(
               \"DOCKER_REGISTRY\"
-              \"SERVER_URL\"
               \"API_KEY\"
               \"GROQ_API_KEY\"
               \"DEPLOYMENT_VERSION\"
