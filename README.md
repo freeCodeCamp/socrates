@@ -91,7 +91,7 @@ pnpm run generate-api-key
 
 | Variable         | Purpose                      | Default     |
 | ---------------- | ---------------------------- | ----------- |
-| `PORT`           | Server port                  | 3000        |
+| `PORT`           | Server port                  | 3001        |
 | `NODE_ENV`       | App environment              | development |
 | `API_KEY`        | Auth key for `/hint`         | --          |
 | `GROQ_API_KEY`   | Groq API key                 | --          |

@@ -9,5 +9,5 @@ socrates.freecodecamp.dev {
 	encode gzip zstd
 
 	# Reverse proxy all requests to the Express app
-	reverse_proxy localhost:3000
+	reverse_proxy localhost:3001
 }

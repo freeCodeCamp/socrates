@@ -27,10 +27,10 @@ COPY --from=build --chown=appuser:appgroup /app/node_modules ./node_modules
 COPY --from=build --chown=appuser:appgroup /app/dist ./dist
 COPY --from=build --chown=appuser:appgroup /app/package.json ./
 ENV NODE_ENV=production
-ENV PORT=3000
-EXPOSE 3000
+ENV PORT=3001
+EXPOSE 3001
 USER appuser
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --spider http://localhost:3000/health || exit 1
+  CMD wget --no-verbose --spider http://localhost:3001/health || exit 1
 ENTRYPOINT ["tini", "--"]
 CMD ["node", "dist/index.js"]

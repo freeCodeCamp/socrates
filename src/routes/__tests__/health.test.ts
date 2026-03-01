@@ -3,7 +3,7 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 vi.mock('../../config/env', () => ({
   ENABLE_EXTENDED_HEALTH: false,
   GROQ_API_KEY: 'test-key',
-  SERVER_URL: 'http://localhost:3000',
+  SERVER_URL: 'http://localhost:3001',
   API_KEY: 'test-api-key',
 }));
 
