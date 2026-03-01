@@ -3,11 +3,10 @@ import helmet from '@fastify/helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import Fastify from 'fastify';
-import { ALLOWED_ORIGINS, NODE_ENV, PORT } from './config/env';
+import { ALLOWED_ORIGINS, isProd, NODE_ENV, PORT } from './config/env';
 import { logger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
 import rateLimiterHook from './lib/rateLimiter';
-import docsAuthHook from './middleware/docsAuth';
 import { errorHandler } from './middleware/errorHandler';
 import { simpleLogger } from './middleware/logger';
 import healthRoutes from './routes/health';
@@ -27,25 +26,24 @@ app.register(cors, {
   },
 });
 
-// Swagger - must be registered before routes for route discovery
-app.register(swagger, { openapi: swaggerDefinition });
-
 // Register shared JSON schemas so route $ref references resolve for both serialization and OpenAPI
 for (const schema of sharedSchemas) {
   app.addSchema(schema);
 }
-app.register(swaggerUi, {
-  routePrefix: '/api-docs',
-  uiConfig: {
-    docExpansion: 'list',
-  },
-  uiHooks: {
-    onRequest: docsAuthHook,
-  },
-  theme: {
-    title: 'Socrates API Docs',
-  },
-});
+
+// Swagger docs - development only
+if (!isProd) {
+  app.register(swagger, { openapi: swaggerDefinition });
+  app.register(swaggerUi, {
+    routePrefix: '/api-docs',
+    uiConfig: {
+      docExpansion: 'list',
+    },
+    theme: {
+      title: 'Socrates API Docs',
+    },
+  });
+}
 
 // Logging hook (replaces morgan + simpleLogger)
 app.addHook('onResponse', simpleLogger);
@@ -66,7 +64,7 @@ app.get('/', async (_request, reply) => {
   return reply.send({
     message: 'socrates API - ready',
     description: 'Visit /health for status',
-    docs: '/api-docs',
+    ...(isProd ? {} : { docs: '/api-docs' }),
   });
 });
 

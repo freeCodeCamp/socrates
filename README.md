@@ -54,7 +54,6 @@ and Groq connectivity.
 ### `GET /api-docs`
 
 Swagger UI. Only available in development (`NODE_ENV != production`).
-Optional HTTP basic auth when `DOCS_BASIC_AUTH_USER`/`PASS` are set.
 
 ## Development
 
@@ -76,7 +75,7 @@ docker compose up -d redis
 
 ```bash
 pnpm run dev           # Dev server with hot reload (nodemon)
-pnpm run build         # Compile TypeScript and copy lib/ to dist/
+pnpm run build         # Compile TypeScript and copy Lua scripts to dist/
 pnpm run start         # Run production build
 pnpm run test          # Run tests (Vitest)
 pnpm run test:watch    # Run tests in watch mode

@@ -5,8 +5,6 @@ vi.mock('../../config/env', () => ({
   GROQ_API_KEY: 'test-key',
   SERVER_URL: 'http://localhost:3000',
   API_KEY: 'test-api-key',
-  DOCS_BASIC_AUTH_USER: 'user',
-  DOCS_BASIC_AUTH_PASS: 'pass',
 }));
 
 vi.mock('../../config/redis', () => ({

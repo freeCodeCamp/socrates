@@ -1,24 +1,17 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { API_KEY, NODE_ENV } from '../config/env';
 import { logger } from '../config/logger';
 
 const safeCompare = (a: string, b: string) => {
-  const aBuf = Buffer.from(a);
-  const bBuf = Buffer.from(b);
-  if (aBuf.length !== bBuf.length) return false;
-  return timingSafeEqual(aBuf, bBuf);
+  const aHash = createHmac('sha256', 'key-compare').update(a).digest();
+  const bHash = createHmac('sha256', 'key-compare').update(b).digest();
+  return timingSafeEqual(aHash, bHash);
 };
 
-/**
- * Fastify preHandler hook to validate API key from request headers
- * Expects the API key in the X-API-Key header
- *
- * API key validation is skipped in non-production/staging environments
- */
 export async function apiKeyAuthHook(request: FastifyRequest, reply: FastifyReply) {
   if (NODE_ENV !== 'production' && NODE_ENV !== 'staging') {
-    logger.info(`${NODE_ENV} mode: skipping API key validation`);
+    logger.debug(`${NODE_ENV} mode: skipping API key validation`);
     return;
   }
 

@@ -9,8 +9,6 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
       API_KEY: ${API_KEY:-}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
-      DOCS_BASIC_AUTH_USER: ${DOCS_BASIC_AUTH_USER:-}
-      DOCS_BASIC_AUTH_PASS: ${DOCS_BASIC_AUTH_PASS:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - '${PORT:-3000}:3000'
