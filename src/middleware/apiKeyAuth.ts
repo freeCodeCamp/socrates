@@ -1,6 +1,14 @@
+import { timingSafeEqual } from 'node:crypto';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { API_KEY, NODE_ENV } from '../config/env';
 import { logger } from '../config/logger';
+
+const safeCompare = (a: string, b: string) => {
+  const aBuf = Buffer.from(a);
+  const bBuf = Buffer.from(b);
+  if (aBuf.length !== bBuf.length) return false;
+  return timingSafeEqual(aBuf, bBuf);
+};
 
 /**
  * Fastify preHandler hook to validate API key from request headers
@@ -24,7 +32,7 @@ export async function apiKeyAuthHook(request: FastifyRequest, reply: FastifyRepl
     });
   }
 
-  if (providedKey !== API_KEY) {
+  if (!safeCompare(String(providedKey), API_KEY)) {
     logger.warn('Invalid API key provided');
     return reply.status(403).send({
       message: 'Invalid API key',

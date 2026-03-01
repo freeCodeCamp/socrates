@@ -29,8 +29,8 @@ async function healthRoutes(fastify: FastifyInstance) {
           try {
             await redisClient.ping();
             return { redis: 'ok' };
-          } catch (e: any) {
-            return { redis: 'error', error: e?.message };
+          } catch (e: unknown) {
+            return { redis: 'error', error: e instanceof Error ? e.message : String(e) };
           }
         })(),
         (async () => {
@@ -42,8 +42,8 @@ async function healthRoutes(fastify: FastifyInstance) {
               timeout: 5000,
             });
             return { groq: 'ok', models_count: r.data?.data?.length || 0 };
-          } catch (e: any) {
-            return { groq: 'error', error: e?.message };
+          } catch (e: unknown) {
+            return { groq: 'error', error: e instanceof Error ? e.message : String(e) };
           }
         })(),
       ]);

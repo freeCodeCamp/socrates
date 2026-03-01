@@ -28,7 +28,7 @@ app.register(cors, {
 });
 
 // Swagger - must be registered before routes for route discovery
-app.register(swagger, { openapi: swaggerDefinition as any });
+app.register(swagger, { openapi: swaggerDefinition });
 
 // Register shared JSON schemas so route $ref references resolve for both serialization and OpenAPI
 for (const schema of sharedSchemas) {

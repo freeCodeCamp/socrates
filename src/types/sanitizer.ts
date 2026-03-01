@@ -11,7 +11,7 @@ export interface RawRequestBody {
 }
 
 export interface SanitizedRequest {
-  userId?: string;
+  userId: string;
   challengeType?: ChallengeType;
   description: string;
   userInput: string;
