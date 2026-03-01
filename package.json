@@ -18,7 +18,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "test:manual": "bash ./scripts/test-hints.sh",
+    "test:manual": "ts-node scripts/test-hints.ts",
     "generate-api-key": "ts-node scripts/generate-api-key.ts"
   },
   "author": "",
