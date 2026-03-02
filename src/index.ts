@@ -1,9 +1,8 @@
-import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import Fastify from 'fastify';
-import { ALLOWED_ORIGINS, isProd, NODE_ENV, PORT } from './config/env';
+import { isProd, NODE_ENV, PORT } from './config/env';
 import { logger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
 import rateLimiterHook from './lib/rateLimiter';
@@ -16,15 +15,6 @@ const app = Fastify({ logger: false });
 
 // Security headers - disable CSP globally to allow swagger-ui inline styles/scripts
 app.register(helmet, { contentSecurityPolicy: false });
-
-// CORS - limited to ALLOWED_ORIGINS env. Default '*' (dev)
-app.register(cors, {
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true); // allow server-to-server or curl
-    if (ALLOWED_ORIGINS.includes('*') || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-    cb(new Error('CORS: origin not allowed'), false);
-  },
-});
 
 // Register shared JSON schemas so route $ref references resolve for both serialization and OpenAPI
 for (const schema of sharedSchemas) {

@@ -6,7 +6,6 @@ vi.mock('../../config/env', () => ({
   SERVER_URL: 'http://localhost:3001',
   API_KEY: 'test-api-key',
   NODE_ENV: 'test',
-  ALLOWED_ORIGINS: ['*'],
   PORT: 3001,
   isProd: false,
   LOG_LEVEL: 'silent',
