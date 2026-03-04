@@ -1,15 +1,6 @@
-import { createLogger, format, transports } from 'winston';
-import { LOG_LEVEL } from './env';
+import pino from 'pino';
+import { isProd, LOG_LEVEL } from './env';
 
-const { combine, timestamp, printf, colorize } = format;
+const transport = isProd ? undefined : pino.transport({ target: 'pino-pretty' });
 
-const devFormat = printf(({ level, message, timestamp, ...meta }) => {
-  const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
-  return `${timestamp} ${level}: ${message}${metaStr}`;
-});
-
-export const logger = createLogger({
-  level: LOG_LEVEL || 'info',
-  format: combine(timestamp(), devFormat),
-  transports: [new transports.Console({ format: combine(colorize(), devFormat) })],
-});
+export const logger = pino({ level: LOG_LEVEL || 'info' }, transport);
