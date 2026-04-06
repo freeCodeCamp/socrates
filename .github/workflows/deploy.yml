@@ -233,6 +233,11 @@ jobs:
 
       - name: Deploy with Docker Stack
         env:
+          # Variables set from GitHub "Environment" secrets
+          # DOCKER_REGISTRY
+          # API_KEY
+          # GROQ_API_KEY
+          # Variables set from workflow inputs/setup
           DEPLOYMENT_VERSION: ${{ inputs.deployment_version }}
           DEPLOYMENT_ENV: ${{ needs.setup-jobs.outputs.deployment_env }}
           STACK_NAME: ${{ needs.setup-jobs.outputs.stack_name }}
@@ -240,14 +245,12 @@ jobs:
           REMOTE_SCRIPT="
             set -e
             echo -e '\nLOG:Deploying Socrates to $TS_MACHINE_NAME...'
-            cd /home/$TS_USERNAME/docker-swarm-config/stacks/socrates
+            cd /home/$TS_USERNAME/infra/docker/swarm/stacks/socrates
 
-            echo -e '\nLOG:Sourcing environment...'
-            set -a
-            source .env
-            set +a
-
-            echo -e '\nLOG:Setting deployment variables...'
+            echo -e '\nLOG:Setting environment variables...'
+            export DOCKER_REGISTRY=$DOCKER_REGISTRY
+            export API_KEY=$API_KEY
+            export GROQ_API_KEY=$GROQ_API_KEY
             export DEPLOYMENT_VERSION=$DEPLOYMENT_VERSION
             export DEPLOYMENT_ENV=$DEPLOYMENT_ENV
 
