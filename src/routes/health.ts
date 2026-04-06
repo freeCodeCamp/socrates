@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { FastifyInstance } from 'fastify';
-import { DEPLOYMENT_VERSION, ENABLE_EXTENDED_HEALTH, GROQ_API_KEY } from '../config/env';
+import { BUILD_VERSION, ENABLE_EXTENDED_HEALTH, GROQ_API_KEY } from '../config/env';
 import redisClient from '../config/redis';
 
 async function healthRoutes(fastify: FastifyInstance) {
@@ -69,7 +69,7 @@ async function healthRoutes(fastify: FastifyInstance) {
       },
     },
     async (_request, reply) => {
-      return reply.send({ version: DEPLOYMENT_VERSION });
+      return reply.send({ version: BUILD_VERSION });
     },
   );
 }

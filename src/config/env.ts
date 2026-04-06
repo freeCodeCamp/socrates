@@ -33,7 +33,7 @@ export const MODEL_CB_COOLDOWN_MS = process.env.MODEL_CB_COOLDOWN_MS
 export const ENABLE_EXTENDED_HEALTH = process.env.ENABLE_EXTENDED_HEALTH === 'true';
 export const API_KEY = process.env.API_KEY || '';
 export const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
-export const DEPLOYMENT_VERSION = process.env.DEPLOYMENT_VERSION || 'unknown';
+export const BUILD_VERSION = process.env.BUILD_VERSION || 'unknown';
 
 // Validate required environment variables
 if (!API_KEY) {
