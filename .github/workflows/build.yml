@@ -10,14 +10,10 @@ on:
           - dev
           - org
         default: 'dev'
-      deploy_mode:
-        description: 'Deploy mode after build'
-        type: choice
-        options:
-          - skip
-          - gantry
-          - full
-        default: 'skip'
+      deploy:
+        description: 'Deploy after build'
+        type: boolean
+        default: false
 
 concurrency:
   group: build-socrates-${{ github.event.inputs.environment }}
@@ -101,19 +97,15 @@ jobs:
 
   deploy:
     name: Deploy
-    if: inputs.deploy_mode != 'skip'
+    if: inputs.deploy
     needs: [setup-jobs, build]
     permissions:
       deployments: write
     uses: ./.github/workflows/deploy.yml
     with:
       environment: ${{ inputs.environment }}
-      deployment_version: ${{ needs.build.outputs.tagname }}
-      deploy_mode: ${{ inputs.deploy_mode }}
     secrets:
       TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
       TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
       WEBHOOK_HOST: ${{ secrets.WEBHOOK_HOST }}
       WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-      TS_USERNAME: ${{ secrets.TS_USERNAME }}
-      TS_MACHINE_NAME: ${{ secrets.TS_MACHINE_NAME }}
