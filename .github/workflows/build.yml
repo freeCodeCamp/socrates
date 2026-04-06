@@ -89,6 +89,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          build-args: |
+            DEPLOYMENT_VERSION=${{ env.tagname }}
           tags: |
             registry.digitalocean.com/${{ secrets.DOCR_NAME }}/${{ needs.setup-jobs.outputs.deployment_env }}/socrates:${{ env.tagname }}
             registry.digitalocean.com/${{ secrets.DOCR_NAME }}/${{ needs.setup-jobs.outputs.deployment_env }}/socrates:latest

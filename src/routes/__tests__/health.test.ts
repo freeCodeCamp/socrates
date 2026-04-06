@@ -5,6 +5,7 @@ vi.mock('../../config/env', () => ({
   GROQ_API_KEY: 'test-key',
   SERVER_URL: 'http://localhost:3001',
   API_KEY: 'test-api-key',
+  DEPLOYMENT_VERSION: 'test-version',
 }));
 
 vi.mock('../../config/redis', () => ({
@@ -38,5 +39,13 @@ describe('GET /health', () => {
     const body = response.json();
     expect(body.status).toBe('ok');
     expect(typeof body.uptime).toBe('number');
+  });
+});
+
+describe('GET /health/version', () => {
+  it('returns status 200 with deployment version', async () => {
+    const response = await app.inject({ method: 'GET', url: '/health/version' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toStrictEqual({ version: 'test-version' });
   });
 });

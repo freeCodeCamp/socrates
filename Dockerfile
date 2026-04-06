@@ -26,6 +26,8 @@ WORKDIR /app
 COPY --from=build --chown=appuser:appgroup /app/node_modules ./node_modules
 COPY --from=build --chown=appuser:appgroup /app/dist ./dist
 COPY --from=build --chown=appuser:appgroup /app/package.json ./
+ARG DEPLOYMENT_VERSION=unknown
+ENV DEPLOYMENT_VERSION=${DEPLOYMENT_VERSION}
 ENV NODE_ENV=production
 ENV PORT=3001
 EXPOSE 3001
