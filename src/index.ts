@@ -1,17 +1,33 @@
+// Must be first — initializes Sentry before any instrumented module loads.
+import './instrument';
+
+import { randomUUID } from 'node:crypto';
 import helmet from '@fastify/helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import * as Sentry from '@sentry/node';
 import Fastify from 'fastify';
 import { isProd, NODE_ENV, PORT } from './config/env';
-import { logger } from './config/logger';
+import { loggerConfig, rootLogger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
 import rateLimiterHook from './lib/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
-import { simpleLogger } from './middleware/logger';
 import healthRoutes from './routes/health';
 import hintRoutes from './routes/hint';
 
-const app = Fastify({ logger: false });
+const app = Fastify({
+  logger: loggerConfig,
+  requestIdHeader: 'x-request-id',
+  genReqId: () => randomUUID(),
+  disableRequestLogging: (req) =>
+    req.url === '/health' ||
+    req.url === '/health/version' ||
+    req.url.startsWith('/api-docs') ||
+    req.url === '/',
+});
+
+// Must be called before any plugin registration so Sentry intercepts the full error lifecycle.
+Sentry.setupFastifyErrorHandler(app);
 
 // Security headers - disable CSP globally to allow swagger-ui inline styles/scripts
 app.register(helmet, { contentSecurityPolicy: false });
@@ -34,9 +50,6 @@ if (!isProd) {
     },
   });
 }
-
-// Logging hook (replaces morgan + simpleLogger)
-app.addHook('onResponse', simpleLogger);
 
 // Error handler
 app.setErrorHandler(errorHandler);
@@ -63,21 +76,24 @@ app.setNotFoundHandler(async (_request, reply) => {
   return reply.status(404).send({ message: 'Not Found' });
 });
 
-// Graceful shutdown and error events
+// Graceful shutdown and error events.
+// Sentry's default onUnhandledRejection / onUncaughtException integrations
+// capture these in parallel; we log via pino so ops see a local line too, and
+// we explicitly exit(1) on uncaughtException for deterministic crash behavior.
 process.on('unhandledRejection', (reason) => {
-  logger.error(`Unhandled Rejection: ${reason}`);
+  rootLogger.error({ err: reason }, 'unhandledRejection');
 });
 process.on('uncaughtException', (err) => {
-  logger.error(`Uncaught Exception: ${err}`);
+  rootLogger.fatal({ err }, 'uncaughtException');
   process.exit(1);
 });
 
 const start = async () => {
   try {
     await app.listen({ port: PORT, host: '0.0.0.0' });
-    logger.info(`Server listening on port ${PORT} in ${NODE_ENV} mode`);
+    rootLogger.info({ port: PORT, nodeEnv: NODE_ENV }, 'server listening');
   } catch (err) {
-    logger.error(err);
+    rootLogger.error({ err }, 'server failed to start');
     process.exit(1);
   }
 };

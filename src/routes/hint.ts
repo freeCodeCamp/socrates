@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { logger } from '../config/logger';
 import { InputValidationError } from '../errors/inputValidationError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
 import { generateFromGroq } from '../lib/groqClient';
@@ -60,6 +59,7 @@ async function hintRoutes(fastify: FastifyInstance) {
           systemPrompt: built.systemPrompt,
           userPrompt: built.userPrompt,
           challengeType: built.challengeType,
+          logger: request.log,
         });
 
         // Sanitize the hint output
@@ -79,7 +79,7 @@ async function hintRoutes(fastify: FastifyInstance) {
           return reply.send({ hint: fallbackHint, model_used: 'fallback' });
         }
         if (err instanceof Error) {
-          logger.error(`Error in /hint: ${err.message}`);
+          request.log.error({ err }, 'error in /hint');
         }
         throw err;
       }

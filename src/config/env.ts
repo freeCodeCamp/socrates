@@ -35,6 +35,12 @@ export const API_KEY = process.env.API_KEY || '';
 export const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 export const BUILD_VERSION = process.env.BUILD_VERSION || 'unknown';
 
+export const SENTRY_DSN = process.env.SENTRY_DSN || '';
+export const SENTRY_ENVIRONMENT = process.env.SENTRY_ENVIRONMENT || NODE_ENV;
+export const SENTRY_TRACES_SAMPLE_RATE = process.env.SENTRY_TRACES_SAMPLE_RATE
+  ? Number(process.env.SENTRY_TRACES_SAMPLE_RATE)
+  : 0.1;
+
 // Validate required environment variables
 if (!API_KEY) {
   throw new Error('API_KEY environment variable is required');

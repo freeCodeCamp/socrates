@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { GLOBAL_LIMIT, PER_USER_LIMIT } from '../config/env';
-import { logger } from '../config/logger';
+import { rootLogger } from '../config/logger';
 import redis from '../config/redis';
 import type { RawRequestBody } from '../types/sanitizer';
 
@@ -33,12 +33,10 @@ let LUA_TOKEN_BUCKET_SHA: string | null = null;
   .script('load', LUA_TOKEN_BUCKET)
   .then((sha: string) => {
     LUA_TOKEN_BUCKET_SHA = sha;
-    logger.info(`Loaded rate-limiter script into Redis with SHA: ${sha}`);
+    rootLogger.info({ sha }, 'rate-limiter Lua script loaded');
   })
   .catch((err: unknown) => {
-    logger.info(
-      `Could not pre-load Lua script into Redis; will fallback to EVAL: ${err instanceof Error ? err.message : String(err)}`,
-    );
+    rootLogger.warn({ err }, 'rate-limiter Lua script preload failed; will fallback to EVAL');
   });
 
 export function rateLimiterHook(opts?: RateLimiterOptions) {
@@ -74,9 +72,7 @@ export function rateLimiterHook(opts?: RateLimiterOptions) {
             ...stringArgs,
           );
         } catch (err: unknown) {
-          logger.info(
-            `EVALSHA failed, falling back to EVAL: ${err instanceof Error ? err.message : String(err)}`,
-          );
+          request.log.warn({ err }, 'EVALSHA failed, falling back to EVAL');
           evalResultRaw = await redisClient.call(
             'EVAL',
             LUA_TOKEN_BUCKET,
@@ -119,9 +115,7 @@ export function rateLimiterHook(opts?: RateLimiterOptions) {
       reply.header('X-RateLimit-Limit', String(perUserCap));
       reply.header('X-RateLimit-Remaining', String(userRemaining));
     } catch (err: unknown) {
-      logger.warn(
-        `Rate limiter encountered an error, allowing request: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      request.log.warn({ err }, 'rate limiter error, allowing request through (fail-open)');
       // Allow request through if Redis or logic fails
     }
   };
