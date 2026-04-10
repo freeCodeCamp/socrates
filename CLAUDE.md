@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code when working with this repository.
 
+## Working with Claude
+
+- Always use the `/find-docs` skill for up-to-date library/SDK/API
+  documentation when available. Prefer it over WebFetch, WebSearch, or
+  relying on training data.
+- Prefer CLI tools over MCP equivalents when both exist (e.g. `gh` over a
+  GitHub MCP). CLI invocations are easier to review.
+
 ## Project overview
 
 Socrates is freeCodeCamp's hint API. It takes a camper's code, the challenge
@@ -66,10 +74,36 @@ Fastify API (`src/index.ts`) with these routes:
 
 - Redis for rate limiting. `docker compose up -d redis` starts a local Redis 7.
 - `docker compose up -d` builds and runs the full stack (app + Redis).
+- If Docker isn't available, `podman compose` is a drop-in replacement for the
+  commands above.
 - Groq API for LLM inference. Different models per challenge type (configurable
   via env).
 - Challenge types: `html`, `css`, `javascript`, `python`.
 - Required env vars: `API_KEY`, `GROQ_API_KEY`. See `.env.example`.
+
+## Observability
+
+- Sentry SDK is initialized in `src/instrument.ts`, which is imported as the
+  literal first line of `src/index.ts`. It MUST stay line 1 -- Sentry patches
+  `http`/axios at require time, so any earlier import escapes instrumentation.
+- Logging is Fastify's built-in pino. `src/config/logger.ts` exports
+  `loggerConfig` (for Fastify), `rootLogger` (for module-scope code), and a
+  structural `Logger` type for library code that shouldn't import pino directly.
+- Inside request handlers/hooks use `request.log` (child logger with `reqId`
+  auto-bound); at module scope use `rootLogger`. `generateFromGroq` in
+  `groqClient.ts` takes a `logger?: Logger` option so it can be threaded
+  `request.log`.
+- **Pino argument order is object-first** (opposite of winston):
+  `logger.info({ foo: 1 }, 'message')` -- NOT `logger.info('message', { foo: 1 })`.
+- **Use `{ err }` as the key** for errors -- pino's default err serializer only
+  fires for the literal key `err`. `{ error: ... }` silently dumps an
+  unserialized object.
+- Sentry Logs ships `warn`/`error`/`fatal` only (configured via
+  `Sentry.pinoIntegration` in `src/instrument.ts`). Info-level logs stay local;
+  pick log levels deliberately.
+- `BUILD_VERSION` is set to `dev-<git-short-sha>` in dev (via the `dev` script
+  wrapper in `package.json`) and to the Docker ARG in prod. It tags Sentry
+  `release` and appears as `build` in every log line.
 
 ## Gotchas
 

@@ -21,6 +21,16 @@ if (SENTRY_DSN && NODE_ENV !== 'test') {
     tracesSampleRate: SENTRY_TRACES_SAMPLE_RATE,
     sendDefaultPii: false,
     maxValueLength: 2048,
+    // Ship pino warn/error/fatal lines to Sentry Logs. Info is left local-only
+    // (Fastify incoming/completed and `groq token usage` stay in the log
+    // aggregator) so Sentry Logs volume is bounded to actionable signals.
+    // Widen the levels array if/when volume is validated in production.
+    enableLogs: true,
+    integrations: [
+      Sentry.pinoIntegration({
+        log: { levels: ['warn', 'error', 'fatal'] },
+      }),
+    ],
     beforeSend: (event) => {
       // Scrub credential headers. Sentry's default scrubbers handle
       // Authorization and Cookie, but x-api-key is custom and must be

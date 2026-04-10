@@ -30,8 +30,9 @@ export const loggerConfig: LoggerOptions = {
   },
 };
 
-// TODO(observability PR3): attach Sentry.pinoIntegration() so pino output ships
-// to Sentry Logs. See plans/melodic-watching-cocke.md.
+// The pino() factory is hooked by Sentry.pinoIntegration() (wired in
+// src/instrument.ts), so rootLogger and any descendant child loggers are
+// automatically captured as Sentry Logs at the configured levels.
 export const rootLogger = pino(loggerConfig);
 
 // Structural logger type used by library code (e.g., groqClient) so it can
