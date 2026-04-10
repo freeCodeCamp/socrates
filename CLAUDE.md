@@ -22,16 +22,20 @@ pnpm run lint             # Lint with oxlint
 pnpm run format           # Format with Prettier
 pnpm run check            # oxlint + prettier --check
 pnpm run test:manual      # Shell-script smoke tests against a running server
+pnpm run generate-api-key # Generate a random API key for local dev
 ```
 
 ## Architecture
 
-Fastify API (`src/index.ts`) with three route groups:
+Fastify API (`src/index.ts`) with these routes:
 
 - `POST /hint` -- main endpoint. API key auth + Redis rate limiter. Sanitizes
   input, builds a prompt, calls Groq, sanitizes the output.
-- `GET /health` -- health check with optional extended mode (Redis + Groq).
-- `GET /api-docs` -- Swagger UI, development only. Optional Basic Auth.
+- `GET /health` -- health check. With `ENABLE_EXTENDED_HEALTH=true`, also
+  pings Redis and Groq.
+- `GET /health/version` -- returns `BUILD_VERSION` (injected at build time,
+  defaults to `'unknown'`).
+- `GET /api-docs` -- Swagger UI, development only.
 
 ### Fastify patterns
 
@@ -65,5 +69,24 @@ Fastify API (`src/index.ts`) with three route groups:
 - Groq API for LLM inference. Different models per challenge type (configurable
   via env).
 - Challenge types: `html`, `css`, `javascript`, `python`.
-- Swagger UI (`/api-docs`) is only registered in development.
 - Required env vars: `API_KEY`, `GROQ_API_KEY`. See `.env.example`.
+
+## Gotchas
+
+- **Node 24+ and pnpm 10 required** (`package.json` engines). Older Node will
+  fail at install or runtime.
+- **`pnpm run build` must copy the Lua script.** The build is
+  `tsc && cp -r src/lib/lua dist/lib/lua`. `src/lib/rateLimiter.ts` reads
+  `token_bucket.lua` from disk at startup; dropping the copy step silently
+  breaks rate limiting in production.
+- **API key auth is skipped outside production/staging.** `apiKeyAuthHook`
+  short-circuits when `NODE_ENV` is anything other than `production` or
+  `staging`, so local dev and tests don't need `X-API-Key`.
+- **Per-challenge model override.** `groqClient.ts` reads `GROQ_MODEL_<TYPE>`
+  env vars dynamically (e.g., `GROQ_MODEL_JAVASCRIPT`) and falls back to
+  `GROQ_MODEL` if unset.
+- **Groq has an in-memory circuit breaker and fallback hint.** After
+  `MODEL_CB_FAILURES` failed attempts the breaker opens for
+  `MODEL_CB_COOLDOWN_MS`; `/hint` then returns a canned fallback string with
+  `model_used: "fallback"` instead of erroring. This is intentional -- don't
+  "fix" it by throwing.
