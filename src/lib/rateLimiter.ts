@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type Redis from 'ioredis';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { GLOBAL_LIMIT, PER_USER_LIMIT } from '../config/env';
 import { rootLogger } from '../config/logger';
-import redis from '../config/redis';
 import type { RawRequestBody } from '../types/sanitizer';
 
 export interface RateLimiterOptions {
-  redisClient?: typeof redis;
+  redisClient: Redis;
   perUserLimit?: number; // requests per minute
   globalLimit?: number; // requests per minute
 }
@@ -28,19 +28,25 @@ const LUA_TOKEN_BUCKET = fs.readFileSync(
 );
 
 let LUA_TOKEN_BUCKET_SHA: string | null = null;
-// Try to load script automatically; if it fails we still proceed and fallback to eval
-(redis as unknown as { script: (cmd: string, lua: string) => Promise<string> })
-  .script('load', LUA_TOKEN_BUCKET)
-  .then((sha: string) => {
-    LUA_TOKEN_BUCKET_SHA = sha;
-    rootLogger.info({ sha }, 'rate-limiter Lua script loaded');
-  })
-  .catch((err: unknown) => {
-    rootLogger.warn({ err }, 'rate-limiter Lua script preload failed; will fallback to EVAL');
-  });
+let scriptLoadAttempted = false;
 
-export function rateLimiterHook(opts?: RateLimiterOptions) {
-  const redisClient = opts?.redisClient || redis;
+export function rateLimiterHook(opts: RateLimiterOptions) {
+  const { redisClient } = opts;
+  // Lazy-load the Lua script into Redis on first hook instantiation.
+  // Falls back to EVAL until the SHA is available; non-blocking.
+  if (!scriptLoadAttempted) {
+    scriptLoadAttempted = true;
+    (redisClient as unknown as { script: (cmd: string, lua: string) => Promise<string> })
+      .script('load', LUA_TOKEN_BUCKET)
+      .then((sha: string) => {
+        LUA_TOKEN_BUCKET_SHA = sha;
+        rootLogger.info({ sha }, 'rate-limiter Lua script loaded');
+      })
+      .catch((err: unknown) => {
+        rootLogger.warn({ err }, 'rate-limiter Lua script preload failed; will fallback to EVAL');
+      });
+  }
+
   const perUserCap = opts?.perUserLimit || PER_USER_LIMIT;
   const globalCap = opts?.globalLimit || GLOBAL_LIMIT;
   const perUserRate = tokensPerMs(perUserCap);

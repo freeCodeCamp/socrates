@@ -8,19 +8,12 @@ vi.mock('../../config/env', () => ({
   BUILD_VERSION: 'test-version',
 }));
 
-vi.mock('../../config/redis', () => ({
-  default: {
-    ping: vi.fn().mockResolvedValue('PONG'),
-    on: vi.fn(),
-    quit: vi.fn(),
-  },
-}));
-
 import Fastify from 'fastify';
 import { sharedSchemas } from '../../config/swagger';
 import healthRoutes from '../../routes/health';
 
 const app = Fastify();
+app.decorate('redis', { ping: vi.fn().mockResolvedValue('PONG') });
 
 for (const schema of sharedSchemas) {
   app.addSchema(schema);

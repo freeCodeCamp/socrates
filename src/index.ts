@@ -11,7 +11,7 @@ import fastifyRedis from '@fastify/redis';
 import { isProd, NODE_ENV, PORT } from './config/env';
 import { loggerConfig, rootLogger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
-import redisClient from './config/redis';
+import { createRedisClient } from './config/redis';
 import rateLimiterHook from './lib/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 import healthRoutes from './routes/health';
@@ -19,6 +19,7 @@ import hintRoutes from './routes/hint';
 
 const app = Fastify({
   logger: loggerConfig,
+  pluginTimeout: 60_000, // allow Redis retryStrategy to exhaust its backoff
   requestIdHeader: 'x-request-id',
   genReqId: () => randomUUID(),
   disableRequestLogging: (req) =>
@@ -56,8 +57,9 @@ if (!isProd) {
 // Error handler
 app.setErrorHandler(errorHandler);
 
-// Register Redis plugin — handles connection check during registration
-// (blocks until 'ready') and graceful shutdown (quit() on close).
+// Register Redis plugin — creates the client via the factory and manages
+// its lifecycle: blocks registration until 'ready', calls quit() on close.
+const redisClient = createRedisClient();
 app.register(fastifyRedis, { client: redisClient, closeClient: true });
 
 // Routes
@@ -65,7 +67,7 @@ app.register(healthRoutes);
 
 // Rate-limit the /hint endpoint per user and globally
 app.register(async (instance) => {
-  instance.addHook('preHandler', rateLimiterHook());
+  instance.addHook('preHandler', rateLimiterHook({ redisClient: instance.redis }));
   instance.register(hintRoutes);
 });
 

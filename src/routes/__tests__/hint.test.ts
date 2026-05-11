@@ -23,16 +23,6 @@ vi.mock('../../config/env', () => ({
   MODEL_CB_COOLDOWN_MS: 30000,
 }));
 
-vi.mock('../../config/redis', () => ({
-  default: {
-    ping: vi.fn().mockResolvedValue('PONG'),
-    call: vi.fn().mockResolvedValue([1, 9, 1, 999]),
-    script: vi.fn().mockResolvedValue('mock-sha'),
-    on: vi.fn(),
-    quit: vi.fn(),
-  },
-}));
-
 vi.mock('../../lib/groqClient', () => ({
   generateFromGroq: vi.fn().mockResolvedValue({
     hint: 'test hint',
@@ -69,7 +59,7 @@ beforeAll(async () => {
   app.setErrorHandler(errorHandler);
 
   app.register(async (instance) => {
-    instance.addHook('preHandler', rateLimiterHook());
+    instance.addHook('preHandler', rateLimiterHook({ redisClient: {} as never }));
     instance.register(hintRoutes);
   });
 
