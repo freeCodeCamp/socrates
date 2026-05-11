@@ -21,17 +21,40 @@ if (SENTRY_DSN && NODE_ENV !== 'test') {
     tracesSampleRate: SENTRY_TRACES_SAMPLE_RATE,
     sendDefaultPii: false,
     maxValueLength: 2048,
-    // Ship pino warn/error/fatal lines to Sentry Logs. Info is left local-only
-    // (Fastify incoming/completed and `groq token usage` stay in the log
-    // aggregator) so Sentry Logs volume is bounded to actionable signals.
-    // Widen the levels array if/when volume is validated in production.
+    // Ship pino error/fatal lines to Sentry Logs.  Warn-level events
+    // (redis reconnections, retryable Groq failures, auth rejections)
+    // stay in the pino stdout stream — they're operational signals
+    // that belong in the log aggregator, not Sentry.
     enableLogs: true,
     integrations: [
       Sentry.pinoIntegration({
-        log: { levels: ['warn', 'error', 'fatal'] },
+        log: { levels: ['error', 'fatal'] },
       }),
     ],
-    beforeSend: (event) => {
+    // Filter ioredis connection errors that the app's retryStrategy +
+    // error listener already handle.  ioredis emits (doesn't throw)
+    // these, but @opentelemetry/instrumentation-ioredis (bundled in
+    // @sentry/node) would otherwise report every failed command as
+    // an error span.  Strings match substrings, not exact.
+    ignoreErrors: [
+      'ECONNREFUSED',
+      'ETIMEDOUT',
+      'ENOTFOUND',
+      'EAI_AGAIN',
+      'Connection is closed',
+      'MaxRetriesPerRequestError',
+    ],
+    beforeSend: (event, hint) => {
+      // Drop handled HTTP errors (status < 500, including 4xx).
+      // Sentry.setupFastifyErrorHandler captures these, but they're
+      // expected/handled — only unhandled 5xx should reach Sentry.
+      const ex = hint.originalException;
+      if (ex && typeof ex === 'object') {
+        const e = ex as Record<string, unknown>;
+        const status = e.statusCode ?? e.status;
+        if (typeof status === 'number' && status < 500) return null;
+      }
+
       // Scrub credential headers. Sentry's default scrubbers handle
       // Authorization and Cookie, but x-api-key is custom and must be
       // filtered here. We also re-scrub the standard ones as belt-and-braces.
