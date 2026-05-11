@@ -11,6 +11,9 @@ importers:
       '@fastify/helmet':
         specifier: ^13.0.2
         version: 13.0.2
+      '@fastify/redis':
+        specifier: ^7.2.0
+        version: 7.2.0
       '@fastify/swagger':
         specifier: ^9.6.1
         version: 9.6.1
@@ -248,6 +251,9 @@ packages:
 
   '@fastify/proxy-addr@5.1.0':
     resolution: {integrity: sha512-INS+6gh91cLUjB+PVHfu1UqcB76Sqtpyp7bnL+FYojhjygvOPA9ctiD/JDKsyD9Xgu4hUhCSJBPig/w7duNajw==}
+
+  '@fastify/redis@7.2.0':
+    resolution: {integrity: sha512-Ql8emmkajVBCCz0pRjPFZRFI2069Jrp/iufKb5TJwgBeu7B+oZp+GeZIgf+4WX3EX7Vi/h3KTyGf+5DUWI1oFw==}
 
   '@fastify/send@4.1.0':
     resolution: {integrity: sha512-TMYeQLCBSy2TOFmV95hQWkiTYgC/SEx7vMdV+wnZVX4tt8VBLKzmH8vV9OzJehV0+XBfg+WxPMt5wp+JBUKsVw==}
@@ -1772,6 +1778,13 @@ snapshots:
     dependencies:
       '@fastify/forwarded': 3.0.1
       ipaddr.js: 2.3.0
+
+  '@fastify/redis@7.2.0':
+    dependencies:
+      fastify-plugin: 5.1.0
+      ioredis: 5.8.2
+    transitivePeerDependencies:
+      - supports-color
 
   '@fastify/send@4.1.0':
     dependencies:

@@ -7,6 +7,7 @@ import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import * as Sentry from '@sentry/node';
 import Fastify from 'fastify';
+import fastifyRedis from '@fastify/redis';
 import { isProd, NODE_ENV, PORT } from './config/env';
 import { loggerConfig, rootLogger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
@@ -55,6 +56,10 @@ if (!isProd) {
 // Error handler
 app.setErrorHandler(errorHandler);
 
+// Register Redis plugin — handles connection check during registration
+// (blocks until 'ready') and graceful shutdown (quit() on close).
+app.register(fastifyRedis, { client: redisClient, closeClient: true });
+
 // Routes
 app.register(healthRoutes);
 
@@ -77,15 +82,6 @@ app.setNotFoundHandler(async (_request, reply) => {
   return reply.status(404).send({ message: 'Not Found' });
 });
 
-// Graceful shutdown and error events.
-// Sentry's default onUnhandledRejection / onUncaughtException integrations
-// capture these in parallel; we log via pino so ops see a local line too, and
-// we explicitly exit(1) on uncaughtException for deterministic crash behavior.
-app.addHook('onClose', async () => {
-  await redisClient.quit();
-  rootLogger.info('redis connection closed');
-});
-
 // Ensure SIGINT/SIGTERM trigger the onClose hooks even when running under
 // nodemon or ts-node, which may otherwise kill the process before Fastify
 // sees the signal.
@@ -97,6 +93,9 @@ app.addHook('onClose', async () => {
   });
 });
 
+// Sentry's default onUnhandledRejection / onUncaughtException integrations
+// capture these in parallel; we log via pino so ops see a local line too, and
+// we explicitly exit(1) on uncaughtException for deterministic crash behavior.
 process.on('unhandledRejection', (reason) => {
   rootLogger.error({ err: reason }, 'unhandledRejection');
 });
@@ -107,20 +106,9 @@ process.on('uncaughtException', (err) => {
 
 const start = async () => {
   try {
-    // Block until Redis is ready before accepting traffic.
-    // ioredis connects at instantiation time and retries with the
-    // configured retryStrategy.  The 'ready' event fires when the
-    // connection is usable; 'end' fires when retries are exhausted.
-    if (redisClient.status !== 'ready') {
-      await new Promise<void>((resolve, reject) => {
-        redisClient.once('ready', resolve);
-        redisClient.once('end', () =>
-          reject(new Error('Redis connection failed after all retries')),
-        );
-      });
-    }
-    rootLogger.info('redis connected');
-
+    // The @fastify/redis plugin (registered above) blocks during
+    // registration until the client emits 'ready', so by the time
+    // we reach this point Redis is available.
     await app.listen({ port: PORT, host: '0.0.0.0' });
     rootLogger.info({ port: PORT, nodeEnv: NODE_ENV }, 'server listening');
   } catch (err) {

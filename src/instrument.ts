@@ -31,19 +31,6 @@ if (SENTRY_DSN && NODE_ENV !== 'test') {
         log: { levels: ['error', 'fatal'] },
       }),
     ],
-    // Filter ioredis connection errors that the app's retryStrategy +
-    // error listener already handle.  ioredis emits (doesn't throw)
-    // these, but @opentelemetry/instrumentation-ioredis (bundled in
-    // @sentry/node) would otherwise report every failed command as
-    // an error span.  Strings match substrings, not exact.
-    ignoreErrors: [
-      'ECONNREFUSED',
-      'ETIMEDOUT',
-      'ENOTFOUND',
-      'EAI_AGAIN',
-      'Connection is closed',
-      'MaxRetriesPerRequestError',
-    ],
     beforeSend: (event, hint) => {
       // Drop handled HTTP errors (status < 500, including 4xx).
       // Sentry.setupFastifyErrorHandler captures these, but they're
