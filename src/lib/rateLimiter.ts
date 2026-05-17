@@ -122,7 +122,10 @@ export function rateLimiterHook(opts: RateLimiterOptions) {
       reply.header('X-RateLimit-Limit', String(perUserCap));
       reply.header('X-RateLimit-Remaining', String(userRemaining));
     } catch (err: unknown) {
-      request.log.warn({ err: toSafeError(err) }, 'rate limiter error, allowing request through (fail-open)');
+      request.log.warn(
+        { err: toSafeError(err) },
+        'rate limiter error, allowing request through (fail-open)',
+      );
       // Allow request through if Redis or logic fails
     }
   };
