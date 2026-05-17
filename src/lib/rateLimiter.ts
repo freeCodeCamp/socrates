@@ -27,25 +27,25 @@ const LUA_TOKEN_BUCKET = fs.readFileSync(
   'utf8',
 );
 
-let LUA_TOKEN_BUCKET_SHA: string | null = null;
-let scriptLoadAttempted = false;
-
 export function rateLimiterHook(opts: RateLimiterOptions) {
   const { redisClient } = opts;
-  // Lazy-load the Lua script into Redis on first hook instantiation.
+  // SHA cache is per-hook-instance so multiple Fastify instances (e.g.,
+  // parallel tests, future sharded rate limiter) each get their own
+  // SCRIPT LOAD against their own Redis. Module-scope flags would let
+  // the second client inherit a SHA loaded against the first client's
+  // Redis, which on a different server is a NOSCRIPT waiting to happen.
+  let luaSha: string | null = null;
+  // Lazy-load the Lua script into Redis on hook construction.
   // Falls back to EVAL until the SHA is available; non-blocking.
-  if (!scriptLoadAttempted) {
-    scriptLoadAttempted = true;
-    (redisClient as unknown as { script: (cmd: string, lua: string) => Promise<string> })
-      .script('load', LUA_TOKEN_BUCKET)
-      .then((sha: string) => {
-        LUA_TOKEN_BUCKET_SHA = sha;
-        rootLogger.info({ sha }, 'rate-limiter Lua script loaded');
-      })
-      .catch((err: unknown) => {
-        rootLogger.warn({ err }, 'rate-limiter Lua script preload failed; will fallback to EVAL');
-      });
-  }
+  (redisClient as unknown as { script: (cmd: string, lua: string) => Promise<string> })
+    .script('load', LUA_TOKEN_BUCKET)
+    .then((sha: string) => {
+      luaSha = sha;
+      rootLogger.info({ sha }, 'rate-limiter Lua script loaded');
+    })
+    .catch((err: unknown) => {
+      rootLogger.warn({ err }, 'rate-limiter Lua script preload failed; will fallback to EVAL');
+    });
 
   const perUserCap = opts?.perUserLimit || PER_USER_LIMIT;
   const globalCap = opts?.globalLimit || GLOBAL_LIMIT;
@@ -67,11 +67,11 @@ export function rateLimiterHook(opts: RateLimiterOptions) {
       // First, try EVALSHA if we have a SHA; otherwise fallback to EVAL
       let evalResultRaw: unknown;
       const stringArgs = args.map(String);
-      if (LUA_TOKEN_BUCKET_SHA) {
+      if (luaSha) {
         try {
           evalResultRaw = await redisClient.call(
             'EVALSHA',
-            LUA_TOKEN_BUCKET_SHA,
+            luaSha,
             '2',
             userKey,
             globalKey,
