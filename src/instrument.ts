@@ -18,7 +18,14 @@ if (SENTRY_DSN && NODE_ENV !== 'test') {
     dsn: SENTRY_DSN,
     environment: SENTRY_ENVIRONMENT,
     release: BUILD_VERSION,
-    tracesSampleRate: SENTRY_TRACES_SAMPLE_RATE,
+    // Skip trace sampling on /health and /health/version. Docker
+    // HEALTHCHECK + upstream LB probes hit these continuously; sampling
+    // them adds Sentry tx volume with zero signal. Everything else
+    // sampled at the configured rate.
+    tracesSampler: ({ name }) => {
+      if (typeof name === 'string' && /\s\/health(\/version)?(\?|$)/.test(name)) return 0;
+      return SENTRY_TRACES_SAMPLE_RATE;
+    },
     sendDefaultPii: false,
     maxValueLength: 2048,
     // Ship pino error/fatal lines to Sentry Logs.  Warn-level events
