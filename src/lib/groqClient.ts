@@ -12,7 +12,7 @@ import {
   MODEL_CB_FAILURES,
 } from '../config/env';
 import { type Logger, rootLogger } from '../config/logger';
-import { GroqApiError } from '../errors/groqApiError';
+import { GroqApiError, toSafeError } from '../errors/groqApiError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
 import type { ChallengeType } from '../types/sanitizer';
 
@@ -129,12 +129,18 @@ async function makeGroqApiCall(
 
       return { hint: hint.trim(), model_used, completionTokens };
     } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
+      // Compute retryability while the raw error (incl. AxiosError shape) is
+      // available, then immediately strip axios internals. From this point
+      // forward `lastError` carries no `config`/`request`/`response`, so it is
+      // safe to feed to pino's err serializer without leaking the bearer.
+      const raw = err instanceof Error ? err : new Error(String(err));
+      const retryable = isRetryableError(raw);
+      const status = raw instanceof AxiosError ? raw.response?.status : undefined;
+      lastError = toSafeError(raw);
 
-      // Determine if error is retryable - only for non-retryable errors, we throw immediately
-      if (!isRetryableError(lastError)) {
+      if (!retryable) {
         handleNonRetryableError(lastError, logger);
-        throw createGroqError(lastError);
+        throw createGroqError(lastError, status);
       }
 
       logger.warn({ attempt, maxRetries, err: lastError }, 'groq request failed');
@@ -281,13 +287,14 @@ function handleAllRetriesFailed(
   }
 }
 
-function createGroqError(err: Error): Error {
-  if (err instanceof AxiosError) {
-    const status = err.response?.status || 0;
+function createGroqError(err: Error, axiosStatus?: number): Error {
+  // `err` is already a sanitized snapshot (see catch block above), so we
+  // can't `instanceof AxiosError`-check it. The caller passes the original
+  // HTTP status via `axiosStatus` when the source was an AxiosError.
+  if (axiosStatus !== undefined) {
     const isRetryable = isRetryableError(err);
-    const message = `Groq API error (${status}): ${err.message}`;
-
-    return new GroqApiError(message, status, isRetryable, err);
+    const message = `Groq API error (${axiosStatus}): ${err.message}`;
+    return new GroqApiError(message, axiosStatus, isRetryable, err);
   }
 
   // For non-axios errors, check if they're retryable
