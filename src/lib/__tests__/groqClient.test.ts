@@ -63,8 +63,6 @@ describe('GroqApiError', () => {
   });
 });
 
-// End-to-end: a sanitized error fed through pino's default err serializer
-// must not emit the bearer on any log path.
 describe('pino { err } serialization with sanitized error', () => {
   let dir: string;
 
