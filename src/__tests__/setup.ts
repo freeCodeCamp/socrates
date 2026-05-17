@@ -13,6 +13,11 @@ vi.mock('@sentry/node', () => ({
   setUser: vi.fn(),
   setTag: vi.fn(),
   setContext: vi.fn(),
+  // Needed because instrument.ts calls Sentry.pinoIntegration() inside
+  // Sentry.init's integrations array. Without this, any test path that
+  // imports instrument.ts with SENTRY_DSN set throws "pinoIntegration
+  // is not a function".
+  pinoIntegration: vi.fn(() => ({})),
   withScope: vi.fn((cb: (scope: { setTag: () => void; setContext: () => void }) => void) =>
     cb({ setTag: () => {}, setContext: () => {} }),
   ),
