@@ -37,8 +37,14 @@ export const BUILD_VERSION = process.env.BUILD_VERSION || 'unknown';
 
 export const SENTRY_DSN = process.env.SENTRY_DSN || '';
 export const SENTRY_ENVIRONMENT = process.env.SENTRY_ENVIRONMENT || NODE_ENV;
-export const SENTRY_TRACES_SAMPLE_RATE = process.env.SENTRY_TRACES_SAMPLE_RATE
+// Guard against malformed env values: a non-numeric string produces NaN
+// from Number(), which Sentry silently treats as 0 (no traces). Fall back
+// to 0.1 so a typo in the env doesn't disable instrumentation invisibly.
+const SENTRY_TRACES_SAMPLE_RATE_PARSED = process.env.SENTRY_TRACES_SAMPLE_RATE
   ? Number(process.env.SENTRY_TRACES_SAMPLE_RATE)
+  : 0.1;
+export const SENTRY_TRACES_SAMPLE_RATE = Number.isFinite(SENTRY_TRACES_SAMPLE_RATE_PARSED)
+  ? SENTRY_TRACES_SAMPLE_RATE_PARSED
   : 0.1;
 
 // Validate required environment variables
