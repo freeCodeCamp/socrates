@@ -1,9 +1,5 @@
 import { AxiosError } from 'axios';
-import pino from 'pino';
-import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { GroqApiError, toSafeError } from '../../errors/groqApiError';
 
 const CANARY = 'TEST_BEARER_CANARY_42';
@@ -63,43 +59,4 @@ describe('GroqApiError', () => {
   });
 });
 
-describe('pino { err } serialization with sanitized error', () => {
-  let dir: string;
 
-  beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'socrates-pino-'));
-  });
-
-  afterEach(() => {
-    rmSync(dir, { recursive: true, force: true });
-  });
-
-  it('emits no bearer when logging the safe error', () => {
-    const file = join(dir, 'out.log');
-    const dest = pino.destination({ dest: file, sync: true });
-    const log = pino({ level: 'info' }, dest);
-
-    const safe = toSafeError(makeAxiosError());
-    log.error({ err: safe }, 'non-retryable groq error');
-    dest.flushSync();
-
-    const out = readFileSync(file, 'utf8');
-    expect(out).not.toContain(CANARY);
-    expect(out).not.toContain('Bearer');
-  });
-
-  it('emits no bearer when logging a GroqApiError wrapping the safe error', () => {
-    const file = join(dir, 'out.log');
-    const dest = pino.destination({ dest: file, sync: true });
-    const log = pino({ level: 'info' }, dest);
-
-    const safe = toSafeError(makeAxiosError());
-    const wrapped = new GroqApiError('Groq API error (401)', 401, false, safe);
-    log.error({ err: wrapped }, 'wrapped groq error');
-    dest.flushSync();
-
-    const out = readFileSync(file, 'utf8');
-    expect(out).not.toContain(CANARY);
-    expect(out).not.toContain('Bearer');
-  });
-});

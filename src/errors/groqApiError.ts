@@ -4,9 +4,7 @@ import type { ApiError } from '../types/api';
 // Sanitized snapshot of an upstream error. Excludes axios internals
 // (config, request, response) which carry the bearer token in headers
 // and would leak through pino's default err serializer.
-export interface SafeErrorSnapshot {
-  name: string;
-  message: string;
+interface SafeErrorSnapshot {
   code?: string;
   status?: number;
   stack?: string;

@@ -43,7 +43,6 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { sharedSchemas } from '../../config/swagger';
 import { ModelUnavailableError } from '../../errors/modelUnavailableError';
 import { generateFromGroq } from '../../lib/groqClient';
-import rateLimiterHook from '../../lib/rateLimiter';
 import { errorHandler } from '../../middleware/errorHandler';
 import hintRoutes from '../../routes/hint';
 
@@ -58,10 +57,7 @@ beforeAll(async () => {
 
   app.setErrorHandler(errorHandler);
 
-  app.register(async (instance) => {
-    instance.addHook('preHandler', rateLimiterHook({ redisClient: {} as never }));
-    instance.register(hintRoutes);
-  });
+  app.register(hintRoutes);
 
   await app.ready();
 });

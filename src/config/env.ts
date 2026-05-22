@@ -36,16 +36,15 @@ export const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 export const BUILD_VERSION = process.env.BUILD_VERSION || 'unknown';
 
 export const SENTRY_DSN = process.env.SENTRY_DSN || '';
-export const SENTRY_ENVIRONMENT = process.env.SENTRY_ENVIRONMENT || NODE_ENV;
+export const SENTRY_ENVIRONMENT = process.env.SENTRY_ENVIRONMENT;
 // Guard against malformed env values: a non-numeric string produces NaN
-// from Number(), which Sentry silently treats as 0 (no traces). Fall back
-// to 0.1 so a typo in the env doesn't disable instrumentation invisibly.
+// from Number(), which Sentry silently treats as 0 (no traces).
 const SENTRY_TRACES_SAMPLE_RATE_PARSED = process.env.SENTRY_TRACES_SAMPLE_RATE
   ? Number(process.env.SENTRY_TRACES_SAMPLE_RATE)
-  : 0.1;
+  : undefined;
 export const SENTRY_TRACES_SAMPLE_RATE = Number.isFinite(SENTRY_TRACES_SAMPLE_RATE_PARSED)
   ? SENTRY_TRACES_SAMPLE_RATE_PARSED
-  : 0.1;
+  : undefined;
 
 // Validate required environment variables
 if (!API_KEY) {
@@ -53,4 +52,14 @@ if (!API_KEY) {
 }
 if (!GROQ_API_KEY) {
   throw new Error('GROQ_API_KEY environment variable is required');
+}
+// When Sentry is configured, its required vars must be set explicitly.
+// No silent fallbacks — misconfiguration should fail loudly.
+if (SENTRY_DSN) {
+  if (!SENTRY_ENVIRONMENT) {
+    throw new Error('SENTRY_ENVIRONMENT is required when SENTRY_DSN is configured');
+  }
+  if (SENTRY_TRACES_SAMPLE_RATE == null) {
+    throw new Error('SENTRY_TRACES_SAMPLE_RATE is required when SENTRY_DSN is configured');
+  }
 }

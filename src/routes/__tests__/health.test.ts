@@ -13,7 +13,6 @@ import { sharedSchemas } from '../../config/swagger';
 import healthRoutes from '../../routes/health';
 
 const app = Fastify();
-app.decorate('redis', { ping: vi.fn().mockResolvedValue('PONG') });
 
 for (const schema of sharedSchemas) {
   app.addSchema(schema);

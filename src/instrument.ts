@@ -24,7 +24,7 @@ if (SENTRY_DSN && NODE_ENV !== 'test') {
     // sampled at the configured rate.
     tracesSampler: ({ name }) => {
       if (typeof name === 'string' && /\s\/health(\/version)?(\?|$)/.test(name)) return 0;
-      return SENTRY_TRACES_SAMPLE_RATE;
+      return SENTRY_TRACES_SAMPLE_RATE as number;
     },
     sendDefaultPii: false,
     maxValueLength: 2048,
