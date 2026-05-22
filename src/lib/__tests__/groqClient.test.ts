@@ -58,5 +58,3 @@ describe('GroqApiError', () => {
     expect(JSON.stringify({ err: wrapped })).not.toContain(CANARY);
   });
 });
-
-
