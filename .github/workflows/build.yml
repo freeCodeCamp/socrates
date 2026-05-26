@@ -56,6 +56,10 @@ jobs:
     needs: setup-jobs
     permissions:
       contents: read
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
     outputs:
       tagname: ${{ steps.tagname.outputs.tagname }}
 
@@ -64,6 +68,9 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+          # Full history required for `sentry-cli releases set-commits --auto`
+          # to resolve the prior release range.
+          fetch-depth: 0
 
       - name: Create a tagname
         id: tagname
@@ -71,6 +78,55 @@ jobs:
           tagname=$(git rev-parse --short HEAD)-$(date +%Y%m%d)-$(date +%H%M)
           echo "tagname=$tagname" >> $GITHUB_ENV
           echo "tagname=$tagname" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript (runner copy for source-map upload)
+        # Runs in addition to the in-Dockerfile build. Produces ./dist/**/*.js.map
+        # on the runner so sentry-cli can inject debug IDs and upload them.
+        # The Docker image rebuilds independently and strips maps in its
+        # production stage — runner dist and image dist do not have to match.
+        env:
+          BUILD_VERSION: ${{ env.tagname }}
+        run: pnpm run build
+
+      - name: Sentry — create release
+        if: env.SENTRY_AUTH_TOKEN != ''
+        env:
+          BUILD_VERSION: ${{ env.tagname }}
+        run: pnpm run release:new
+
+      - name: Sentry — inject debug IDs into source maps
+        if: env.SENTRY_AUTH_TOKEN != ''
+        run: pnpm run sourcemaps:inject
+
+      - name: Sentry — upload source maps
+        if: env.SENTRY_AUTH_TOKEN != ''
+        env:
+          BUILD_VERSION: ${{ env.tagname }}
+        run: pnpm run sourcemaps:upload
+
+      - name: Sentry — associate commits
+        if: env.SENTRY_AUTH_TOKEN != ''
+        env:
+          BUILD_VERSION: ${{ env.tagname }}
+        run: pnpm run release:set-commits
+
+      - name: Sentry — finalize release
+        if: env.SENTRY_AUTH_TOKEN != ''
+        env:
+          BUILD_VERSION: ${{ env.tagname }}
+        run: pnpm run release:finalize
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
