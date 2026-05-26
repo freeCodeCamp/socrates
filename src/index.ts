@@ -91,6 +91,9 @@ app.setNotFoundHandler(async (_request, reply) => {
   process.on(signal, async () => {
     rootLogger.info({ signal }, 'shutting down');
     await app.close();
+    // Flush queued Sentry events before exit. Safe no-op when SENTRY_DSN
+    // is unset (Sentry.init() was skipped). 2s timeout matches the SDK default.
+    await Sentry.close(2000);
     process.exit(0);
   });
 });
@@ -101,8 +104,11 @@ app.setNotFoundHandler(async (_request, reply) => {
 process.on('unhandledRejection', (reason) => {
   rootLogger.error({ err: reason }, 'unhandledRejection');
 });
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', async (err) => {
   rootLogger.fatal({ err }, 'uncaughtException');
+  // Best-effort flush. 2s ceiling — if Sentry can't drain in that window,
+  // the fatal log line is already in stdout for the local aggregator.
+  await Sentry.close(2000);
   process.exit(1);
 });
 
