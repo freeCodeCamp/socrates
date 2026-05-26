@@ -1,47 +1,36 @@
-import { AxiosError } from 'axios';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('../../config/env', () => ({
+  GROQ_API_KEY: 'test-key',
+  GROQ_BACKOFF_BASE_MS: () => 100,
+  GROQ_EMPTY_RESPONSE_RETRIES: () => 1,
+  GROQ_MAX_RETRIES: () => 2,
+  GROQ_MAX_TOKENS: () => 1024,
+  GROQ_MAX_TOKENS_RETRY: () => 2048,
+  GROQ_MODEL: 'test-model',
+  GROQ_TIMEOUT_MS: () => 5000,
+  MODEL_CB_COOLDOWN_MS: 30000,
+  MODEL_CB_FAILURES: 3,
+  BUILD_VERSION: 'test',
+  LOG_LEVEL: 'silent',
+  NODE_ENV: 'test',
+}));
+
 import { GroqApiError, toSafeError } from '../../errors/groqApiError';
+import { HttpError } from '../groqClient';
 
-const CANARY = 'TEST_BEARER_CANARY_42';
-
-function makeAxiosError() {
-  const config = {
-    url: 'https://api.groq.com/openai/v1/chat/completions',
-    method: 'post',
-    headers: {
-      Authorization: `Bearer ${CANARY}`,
-      'Content-Type': 'application/json',
-    },
-  };
-  return new AxiosError('Request failed with status code 401', 'ERR_BAD_REQUEST', config, null, {
-    status: 401,
-    statusText: 'Unauthorized',
-    headers: {},
-    config,
-    data: {},
-  });
-}
-
-describe('toSafeError (bearer-leak regression)', () => {
-  it('strips axios config/request/response so JSON serialization carries no bearer', () => {
-    const safe = toSafeError(makeAxiosError());
-    const json = JSON.stringify(safe);
-    expect(json).not.toContain(CANARY);
-    expect(json).not.toContain('Bearer');
-    expect(json).not.toContain('Authorization');
-  });
-
-  it('preserves status + code metadata on the sanitized error', () => {
-    const safe = toSafeError(makeAxiosError());
-    expect(safe.message).toBe('Request failed with status code 401');
-    expect(safe.name).toBe('AxiosError');
-    expect(safe.code).toBe('ERR_BAD_REQUEST');
-    expect(safe.status).toBe(401);
-  });
-
-  it('passes non-axios errors through unchanged', () => {
+describe('toSafeError', () => {
+  it('passes Error instances through unchanged', () => {
     const e = new Error('boom');
     expect(toSafeError(e)).toBe(e);
+  });
+
+  it('preserves HttpError identity (instanceof + status) so retryability checks still work', () => {
+    const http = new HttpError(429, 'rate limited', { error: 'too many' });
+    const safe = toSafeError(http);
+    expect(safe).toBe(http);
+    expect(safe).toBeInstanceOf(HttpError);
+    expect((safe as HttpError).status).toBe(429);
   });
 
   it('wraps non-Error values', () => {
@@ -51,10 +40,24 @@ describe('toSafeError (bearer-leak regression)', () => {
   });
 });
 
+describe('HttpError (bearer-leak surface)', () => {
+  it('carries only status + message + parsed body — no request headers', () => {
+    // Regression guard: with axios gone, the Authorization header lives only
+    // on the fetch options object in postChatCompletion and never escapes onto
+    // the thrown error. JSON-serializing the HttpError must not surface it.
+    const http = new HttpError(401, 'HTTP 401 Unauthorized', { error: 'bad key' });
+    const json = JSON.stringify(http);
+    expect(json).not.toContain('Authorization');
+    expect(json).not.toContain('Bearer');
+  });
+});
+
 describe('GroqApiError', () => {
-  it('does not leak the bearer when constructed from a sanitized snapshot', () => {
-    const safe = toSafeError(makeAxiosError());
-    const wrapped = new GroqApiError('Groq API error (401): unauthorized', 401, false, safe);
-    expect(JSON.stringify({ err: wrapped })).not.toContain(CANARY);
+  it('wraps a sanitized originalError without leaking arbitrary fields', () => {
+    const safe = toSafeError(new Error('upstream blew up'));
+    const wrapped = new GroqApiError('Groq API error (500): upstream blew up', 500, true, safe);
+    expect(wrapped.status).toBe(500);
+    expect(wrapped.isRetryable).toBe(true);
+    expect(wrapped.originalError).toBe(safe);
   });
 });
