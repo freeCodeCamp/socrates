@@ -28,6 +28,11 @@ if (SENTRY_DSN && NODE_ENV !== 'test') {
     },
     sendDefaultPii: false,
     maxValueLength: 2048,
+    // Capture local variable values in stack frames. The `/hint` request
+    // body is already forwarded to Sentry (see beforeSend comment below),
+    // so local-var capture does not expand the data surface meaningfully
+    // and significantly improves stack-frame debug velocity.
+    includeLocalVariables: true,
     // Ship pino error/fatal lines to Sentry Logs.  Warn-level events
     // (redis reconnections, retryable Groq failures, auth rejections)
     // stay in the pino stdout stream — they're operational signals
@@ -37,6 +42,10 @@ if (SENTRY_DSN && NODE_ENV !== 'test') {
       Sentry.pinoIntegration({
         log: { levels: ['error', 'fatal'] },
       }),
+      // Push memory / CPU / event-loop telemetry to Sentry Metrics at
+      // the SDK default 30s interval. Free ops visibility on a service
+      // that talks to Groq + Redis.
+      Sentry.nodeRuntimeMetricsIntegration(),
     ],
     beforeSend: (event, hint) => {
       // Drop handled HTTP errors (status < 500, including 4xx).
