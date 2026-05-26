@@ -13,6 +13,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml tsconfig.json ./
 COPY src/ ./src/
 RUN pnpm run build
+# Strip .map files (source maps + declaration maps) before the production
+# stage copies dist. Source maps are uploaded to Sentry from the CI runner
+# (see .github/workflows/build.yml); the runtime image must not ship them.
+# Vm invariant V5.
+RUN find dist -name '*.map' -delete
 RUN pnpm prune --prod
 
 # Stage 3 — Production image
