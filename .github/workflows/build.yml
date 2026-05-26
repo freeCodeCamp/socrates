@@ -39,14 +39,14 @@ jobs:
 
           case "$ENV" in
             "org")
-              echo "deployment_env=org" >> $GITHUB_OUTPUT
-              echo "tgt_env_short=prd" >> $GITHUB_OUTPUT
-              echo "stack_name=prd-socrates" >> $GITHUB_OUTPUT
+              echo "deployment_env=org" >> "$GITHUB_OUTPUT"
+              echo "tgt_env_short=prd" >> "$GITHUB_OUTPUT"
+              echo "stack_name=prd-socrates" >> "$GITHUB_OUTPUT"
               ;;
             *)
-              echo "deployment_env=dev" >> $GITHUB_OUTPUT
-              echo "tgt_env_short=stg" >> $GITHUB_OUTPUT
-              echo "stack_name=stg-socrates" >> $GITHUB_OUTPUT
+              echo "deployment_env=dev" >> "$GITHUB_OUTPUT"
+              echo "tgt_env_short=stg" >> "$GITHUB_OUTPUT"
+              echo "stack_name=stg-socrates" >> "$GITHUB_OUTPUT"
               ;;
           esac
 
@@ -76,8 +76,8 @@ jobs:
         id: tagname
         run: |
           tagname=$(git rev-parse --short HEAD)-$(date +%Y%m%d)-$(date +%H%M)
-          echo "tagname=$tagname" >> $GITHUB_ENV
-          echo "tagname=$tagname" >> $GITHUB_OUTPUT
+          echo "tagname=$tagname" >> "$GITHUB_ENV"
+          echo "tagname=$tagname" >> "$GITHUB_OUTPUT"
 
       - name: Setup pnpm
         uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
@@ -162,8 +162,12 @@ jobs:
     uses: ./.github/workflows/deploy.yml
     with:
       environment: ${{ inputs.environment }}
+      build_version: ${{ needs.build.outputs.tagname }}
     secrets:
       TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
       TS_OAUTH_SECRET: ${{ secrets.TS_OAUTH_SECRET }}
       WEBHOOK_HOST: ${{ secrets.WEBHOOK_HOST }}
       WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}

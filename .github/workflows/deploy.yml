@@ -15,6 +15,11 @@ on:
       environment:
         type: string
         required: true
+      build_version:
+        description: 'Release identifier (image tag) used by sentry-cli deploy marker'
+        type: string
+        required: false
+        default: ''
     secrets:
       TS_OAUTH_CLIENT_ID:
         required: true
@@ -24,6 +29,12 @@ on:
         required: true
       WEBHOOK_SECRET:
         required: true
+      SENTRY_AUTH_TOKEN:
+        required: false
+      SENTRY_ORG:
+        required: false
+      SENTRY_PROJECT:
+        required: false
 
 concurrency:
   group: deploy-socrates-${{ github.event.inputs.environment || inputs.environment }}
@@ -49,14 +60,14 @@ jobs:
 
           case "$ENV" in
             "org")
-              echo "deployment_env=org" >> $GITHUB_OUTPUT
-              echo "tgt_env_short=prd" >> $GITHUB_OUTPUT
-              echo "stack_name=prd-socrates" >> $GITHUB_OUTPUT
+              echo "deployment_env=org" >> "$GITHUB_OUTPUT"
+              echo "tgt_env_short=prd" >> "$GITHUB_OUTPUT"
+              echo "stack_name=prd-socrates" >> "$GITHUB_OUTPUT"
               ;;
             *)
-              echo "deployment_env=dev" >> $GITHUB_OUTPUT
-              echo "tgt_env_short=stg" >> $GITHUB_OUTPUT
-              echo "stack_name=stg-socrates" >> $GITHUB_OUTPUT
+              echo "deployment_env=dev" >> "$GITHUB_OUTPUT"
+              echo "tgt_env_short=stg" >> "$GITHUB_OUTPUT"
+              echo "stack_name=stg-socrates" >> "$GITHUB_OUTPUT"
               ;;
           esac
 
@@ -109,3 +120,19 @@ jobs:
             -H "Content-Type: application/json" \
             -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
             -d "{\"GANTRY_SERVICES_FILTERS\":\"name=${STACK_NAME}_svc-socrates\"}"
+
+      - name: Install sentry-cli
+        if: inputs.build_version != '' && env.SENTRY_AUTH_TOKEN != ''
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        run: npm install -g @sentry/cli@3.4.3
+
+      - name: Sentry — deploy marker
+        if: inputs.build_version != '' && env.SENTRY_AUTH_TOKEN != ''
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          BUILD_VERSION: ${{ inputs.build_version }}
+          DEPLOY_ENV: ${{ needs.setup-jobs.outputs.tgt_env_short }}
+        run: sentry-cli deploys new -e "$DEPLOY_ENV" -r "$BUILD_VERSION"
