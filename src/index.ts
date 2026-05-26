@@ -90,11 +90,19 @@ app.setNotFoundHandler(async (_request, reply) => {
 ['SIGINT', 'SIGTERM'].forEach((signal) => {
   process.on(signal, async () => {
     rootLogger.info({ signal }, 'shutting down');
-    await app.close();
-    // Flush queued Sentry events before exit. Safe no-op when SENTRY_DSN
-    // is unset (Sentry.init() was skipped). 2s timeout matches the SDK default.
-    await Sentry.close(2000);
-    process.exit(0);
+    try {
+      await app.close();
+      // Flush queued Sentry events before exit. Safe no-op when SENTRY_DSN
+      // is unset (Sentry.init() was skipped). 2s timeout matches the SDK default.
+      await Sentry.close(2000);
+    } catch (err) {
+      rootLogger.error({ err }, 'shutdown error');
+    } finally {
+      // V6: process MUST exit even if the awaits above reject. A hung
+      // shutdown is worse than a noisy one — the orchestrator will SIGKILL
+      // us anyway after the grace period.
+      process.exit(0);
+    }
   });
 });
 
@@ -106,10 +114,17 @@ process.on('unhandledRejection', (reason) => {
 });
 process.on('uncaughtException', async (err) => {
   rootLogger.fatal({ err }, 'uncaughtException');
-  // Best-effort flush. 2s ceiling — if Sentry can't drain in that window,
-  // the fatal log line is already in stdout for the local aggregator.
-  await Sentry.close(2000);
-  process.exit(1);
+  try {
+    // Best-effort flush. 2s ceiling — if Sentry can't drain in that window,
+    // the fatal log line is already in stdout for the local aggregator.
+    await Sentry.close(2000);
+  } catch (closeErr) {
+    rootLogger.error({ err: closeErr }, 'Sentry.close failed during uncaughtException');
+  } finally {
+    // V6: never skip exit(1). The process is in an unknown state — staying
+    // alive risks serving requests against corrupted in-memory state.
+    process.exit(1);
+  }
 });
 
 const start = async () => {
