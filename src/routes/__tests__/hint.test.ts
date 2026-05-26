@@ -23,16 +23,6 @@ vi.mock('../../config/env', () => ({
   MODEL_CB_COOLDOWN_MS: 30000,
 }));
 
-vi.mock('../../config/redis', () => ({
-  default: {
-    ping: vi.fn().mockResolvedValue('PONG'),
-    call: vi.fn().mockResolvedValue([1, 9, 1, 999]),
-    script: vi.fn().mockResolvedValue('mock-sha'),
-    on: vi.fn(),
-    quit: vi.fn(),
-  },
-}));
-
 vi.mock('../../lib/groqClient', () => ({
   generateFromGroq: vi.fn().mockResolvedValue({
     hint: 'test hint',
@@ -53,7 +43,6 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { sharedSchemas } from '../../config/swagger';
 import { ModelUnavailableError } from '../../errors/modelUnavailableError';
 import { generateFromGroq } from '../../lib/groqClient';
-import rateLimiterHook from '../../lib/rateLimiter';
 import { errorHandler } from '../../middleware/errorHandler';
 import hintRoutes from '../../routes/hint';
 
@@ -68,10 +57,7 @@ beforeAll(async () => {
 
   app.setErrorHandler(errorHandler);
 
-  app.register(async (instance) => {
-    instance.addHook('preHandler', rateLimiterHook());
-    instance.register(hintRoutes);
-  });
+  app.register(hintRoutes);
 
   await app.ready();
 });

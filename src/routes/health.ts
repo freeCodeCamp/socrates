@@ -1,7 +1,6 @@
 import axios from 'axios';
 import type { FastifyInstance } from 'fastify';
 import { BUILD_VERSION, ENABLE_EXTENDED_HEALTH, GROQ_API_KEY } from '../config/env';
-import redisClient from '../config/redis';
 
 async function healthRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -27,7 +26,7 @@ async function healthRoutes(fastify: FastifyInstance) {
       const results = await Promise.all([
         (async () => {
           try {
-            await redisClient.ping();
+            await fastify.redis.ping();
             return { redis: 'ok' };
           } catch (e: unknown) {
             return { redis: 'error', error: e instanceof Error ? e.message : String(e) };

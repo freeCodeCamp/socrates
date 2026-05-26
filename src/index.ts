@@ -1,17 +1,36 @@
+// Must be first — initializes Sentry before any instrumented module loads.
+import './instrument';
+
+import { randomUUID } from 'node:crypto';
 import helmet from '@fastify/helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import * as Sentry from '@sentry/node';
 import Fastify from 'fastify';
+import fastifyRedis from '@fastify/redis';
 import { isProd, NODE_ENV, PORT } from './config/env';
-import { logger } from './config/logger';
+import { loggerConfig, rootLogger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
+import { createRedisClient } from './config/redis';
 import rateLimiterHook from './lib/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
-import { simpleLogger } from './middleware/logger';
 import healthRoutes from './routes/health';
 import hintRoutes from './routes/hint';
 
-const app = Fastify({ logger: false });
+const app = Fastify({
+  logger: loggerConfig,
+  pluginTimeout: 60_000, // allow Redis retryStrategy to exhaust its backoff
+  requestIdHeader: 'x-request-id',
+  genReqId: () => randomUUID(),
+  disableRequestLogging: (req) =>
+    req.url === '/health' ||
+    req.url === '/health/version' ||
+    req.url.startsWith('/api-docs') ||
+    req.url === '/',
+});
+
+// Must be called before any plugin registration so Sentry intercepts the full error lifecycle.
+Sentry.setupFastifyErrorHandler(app);
 
 // Security headers - disable CSP globally to allow swagger-ui inline styles/scripts
 app.register(helmet, { contentSecurityPolicy: false });
@@ -35,18 +54,20 @@ if (!isProd) {
   });
 }
 
-// Logging hook (replaces morgan + simpleLogger)
-app.addHook('onResponse', simpleLogger);
-
 // Error handler
 app.setErrorHandler(errorHandler);
+
+// Register Redis plugin — creates the client via the factory and manages
+// its lifecycle: blocks registration until 'ready', calls quit() on close.
+const redisClient = createRedisClient();
+app.register(fastifyRedis, { client: redisClient, closeClient: true });
 
 // Routes
 app.register(healthRoutes);
 
 // Rate-limit the /hint endpoint per user and globally
 app.register(async (instance) => {
-  instance.addHook('preHandler', rateLimiterHook());
+  instance.addHook('preHandler', rateLimiterHook({ redisClient: instance.redis }));
   instance.register(hintRoutes);
 });
 
@@ -63,21 +84,37 @@ app.setNotFoundHandler(async (_request, reply) => {
   return reply.status(404).send({ message: 'Not Found' });
 });
 
-// Graceful shutdown and error events
+// Ensure SIGINT/SIGTERM trigger the onClose hooks even when running under
+// nodemon or ts-node, which may otherwise kill the process before Fastify
+// sees the signal.
+['SIGINT', 'SIGTERM'].forEach((signal) => {
+  process.on(signal, async () => {
+    rootLogger.info({ signal }, 'shutting down');
+    await app.close();
+    process.exit(0);
+  });
+});
+
+// Sentry's default onUnhandledRejection / onUncaughtException integrations
+// capture these in parallel; we log via pino so ops see a local line too, and
+// we explicitly exit(1) on uncaughtException for deterministic crash behavior.
 process.on('unhandledRejection', (reason) => {
-  logger.error(`Unhandled Rejection: ${reason}`);
+  rootLogger.error({ err: reason }, 'unhandledRejection');
 });
 process.on('uncaughtException', (err) => {
-  logger.error(`Uncaught Exception: ${err}`);
+  rootLogger.fatal({ err }, 'uncaughtException');
   process.exit(1);
 });
 
 const start = async () => {
   try {
+    // The @fastify/redis plugin (registered above) blocks during
+    // registration until the client emits 'ready', so by the time
+    // we reach this point Redis is available.
     await app.listen({ port: PORT, host: '0.0.0.0' });
-    logger.info(`Server listening on port ${PORT} in ${NODE_ENV} mode`);
+    rootLogger.info({ port: PORT, nodeEnv: NODE_ENV }, 'server listening');
   } catch (err) {
-    logger.error(err);
+    rootLogger.error({ err }, 'server failed to start');
     process.exit(1);
   }
 };

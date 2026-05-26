@@ -11,8 +11,8 @@ import {
   MODEL_CB_COOLDOWN_MS,
   MODEL_CB_FAILURES,
 } from '../config/env';
-import { logger } from '../config/logger';
-import { GroqApiError } from '../errors/groqApiError';
+import { type Logger, rootLogger } from '../config/logger';
+import { GroqApiError, toSafeError } from '../errors/groqApiError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
 import type { ChallengeType } from '../types/sanitizer';
 
@@ -20,6 +20,7 @@ export interface GroqRequestOptions {
   systemPrompt: string;
   userPrompt: string;
   challengeType?: ChallengeType;
+  logger?: Logger;
 }
 
 export interface GroqResponse {
@@ -67,6 +68,7 @@ interface GroqApiResult {
 async function makeGroqApiCall(
   options: GroqApiCallOptions,
   cb: CircuitBreaker,
+  logger: Logger,
 ): Promise<GroqApiResult> {
   const { systemPrompt, userPrompt, challengeType, maxTokens } = options;
   let lastError: Error | null = null;
@@ -107,16 +109,19 @@ async function makeGroqApiCall(
             ? ((cachedTokens / data.usage.prompt_tokens) * 100).toFixed(1)
             : '0.0';
 
-        logger.info('Groq token usage', {
-          model: model_used,
-          challengeType: challengeType || 'unknown',
-          promptTokens: data.usage.prompt_tokens,
-          cachedTokens,
-          cacheHitRate: `${cacheHitRate}%`,
-          completionTokens: data.usage.completion_tokens,
-          totalTokens: data.usage.total_tokens,
-          maxTokensUsed: maxTokens,
-        });
+        logger.info(
+          {
+            model: model_used,
+            challengeType: challengeType || 'unknown',
+            promptTokens: data.usage.prompt_tokens,
+            cachedTokens,
+            cacheHitRate: `${cacheHitRate}%`,
+            completionTokens: data.usage.completion_tokens,
+            totalTokens: data.usage.total_tokens,
+            maxTokensUsed: maxTokens,
+          },
+          'groq token usage',
+        );
       }
 
       // Reset circuit breaker on success
@@ -124,15 +129,21 @@ async function makeGroqApiCall(
 
       return { hint: hint.trim(), model_used, completionTokens };
     } catch (err) {
-      lastError = err instanceof Error ? err : new Error(String(err));
+      // Compute retryability while the raw error (incl. AxiosError shape) is
+      // available, then immediately strip axios internals. From this point
+      // forward `lastError` carries no `config`/`request`/`response`, so it is
+      // safe to feed to pino's err serializer without leaking the bearer.
+      const raw = err instanceof Error ? err : new Error(String(err));
+      const retryable = isRetryableError(raw);
+      const status = raw instanceof AxiosError ? raw.response?.status : undefined;
+      lastError = toSafeError(raw);
 
-      // Determine if error is retryable - only for non-retryable errors, we throw immediately
-      if (!isRetryableError(lastError)) {
-        handleNonRetryableError(lastError);
-        throw createGroqError(lastError);
+      if (!retryable) {
+        handleNonRetryableError(lastError, logger);
+        throw createGroqError(lastError, status);
       }
 
-      logger.warn(`Groq request failed (attempt ${attempt}/${maxRetries}): ${lastError.message}`);
+      logger.warn({ attempt, maxRetries, err: lastError }, 'groq request failed');
 
       // Exponential backoff with jitter
       if (attempt < maxRetries) {
@@ -145,12 +156,13 @@ async function makeGroqApiCall(
 
   // All retries failed - handle circuit breaker
   const finalError = lastError || new Error('Groq generate failed');
-  handleAllRetriesFailed(finalError, cb);
+  handleAllRetriesFailed(finalError, cb, logger);
   throw finalError;
 }
 
 export async function generateFromGroq(options: GroqRequestOptions): Promise<GroqResponse> {
   const { systemPrompt, userPrompt, challengeType } = options;
+  const logger = options.logger ?? rootLogger;
   const now = Date.now();
 
   const cb = circuitBreaker;
@@ -167,6 +179,7 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
   const result = await makeGroqApiCall(
     { systemPrompt, userPrompt, challengeType, maxTokens: initialMaxTokens },
     cb,
+    logger,
   );
 
   // If we got a non-empty response, return it
@@ -175,45 +188,57 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
   }
 
   // Empty response detected - retry with higher max_tokens
-  logger.warn('Groq returned empty response, retrying with higher max_tokens', {
-    initialMaxTokens,
-    retryMaxTokens,
-    completionTokens: result.completionTokens,
-    challengeType: challengeType || 'unknown',
-  });
+  logger.warn(
+    {
+      initialMaxTokens,
+      retryMaxTokens,
+      completionTokens: result.completionTokens,
+      challengeType: challengeType || 'unknown',
+    },
+    'groq returned empty response, retrying with higher max_tokens',
+  );
 
   for (let emptyRetry = 1; emptyRetry <= emptyResponseRetries; emptyRetry++) {
     const retryResult = await makeGroqApiCall(
       { systemPrompt, userPrompt, challengeType, maxTokens: retryMaxTokens },
       cb,
+      logger,
     );
 
     if (retryResult.hint.length > 0) {
-      logger.info('Groq retry with higher max_tokens succeeded', {
-        emptyRetryAttempt: emptyRetry,
-        retryMaxTokens,
-        challengeType: challengeType || 'unknown',
-      });
+      logger.info(
+        {
+          emptyRetryAttempt: emptyRetry,
+          retryMaxTokens,
+          challengeType: challengeType || 'unknown',
+        },
+        'groq retry with higher max_tokens succeeded',
+      );
       return { hint: retryResult.hint, model_used: retryResult.model_used };
     }
 
     logger.warn(
-      `Groq empty response retry ${emptyRetry}/${emptyResponseRetries} still returned empty`,
       {
+        emptyRetry,
+        emptyResponseRetries,
         retryMaxTokens,
         completionTokens: retryResult.completionTokens,
         challengeType: challengeType || 'unknown',
       },
+      'groq empty response retry still returned empty',
     );
   }
 
   // All retries exhausted, return empty result (let the caller handle it)
-  logger.error('Groq returned empty response after all retries', {
-    initialMaxTokens,
-    retryMaxTokens,
-    emptyResponseRetries,
-    challengeType: challengeType || 'unknown',
-  });
+  logger.error(
+    {
+      initialMaxTokens,
+      retryMaxTokens,
+      emptyResponseRetries,
+      challengeType: challengeType || 'unknown',
+    },
+    'groq returned empty response after all retries',
+  );
 
   return { hint: '', model_used: result.model_used };
 }
@@ -236,32 +261,40 @@ function isRetryableError(err: Error): boolean {
   return true;
 }
 
-function handleNonRetryableError(err: Error): void {
-  logger.error(`Non-retryable Groq error: ${err.message}`);
+function handleNonRetryableError(err: Error, logger: Logger): void {
+  logger.error({ err }, 'non-retryable groq error');
 
   // Don't increment circuit breaker for non-retryable errors (authentication, bad request, etc.)
   // These are application/configuration issues, not service availability issues
 }
 
-function handleAllRetriesFailed(err: Error, cb: { failures: number; openedUntil: number }): void {
-  logger.error(`All Groq retry attempts failed: ${err.message}`);
+function handleAllRetriesFailed(
+  err: Error,
+  cb: { failures: number; openedUntil: number },
+  logger: Logger,
+): void {
+  logger.error({ err }, 'all groq retry attempts failed');
 
   // Increment failure count and possibly open circuit breaker
   cb.failures = (cb.failures || 0) + 1;
   if (cb.failures >= MODEL_CB_FAILURES) {
     cb.openedUntil = Date.now() + MODEL_CB_COOLDOWN_MS;
     cb.failures = 0;
-    logger.warn(`Groq circuit breaker opened until ${new Date(cb.openedUntil).toISOString()}`);
+    logger.warn(
+      { openedUntil: new Date(cb.openedUntil).toISOString() },
+      'groq circuit breaker opened',
+    );
   }
 }
 
-function createGroqError(err: Error): Error {
-  if (err instanceof AxiosError) {
-    const status = err.response?.status || 0;
+function createGroqError(err: Error, axiosStatus?: number): Error {
+  // `err` is already a sanitized snapshot (see catch block above), so we
+  // can't `instanceof AxiosError`-check it. The caller passes the original
+  // HTTP status via `axiosStatus` when the source was an AxiosError.
+  if (axiosStatus !== undefined) {
     const isRetryable = isRetryableError(err);
-    const message = `Groq API error (${status}): ${err.message}`;
-
-    return new GroqApiError(message, status, isRetryable, err);
+    const message = `Groq API error (${axiosStatus}): ${err.message}`;
+    return new GroqApiError(message, axiosStatus, isRetryable, err);
   }
 
   // For non-axios errors, check if they're retryable
