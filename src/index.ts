@@ -1,5 +1,5 @@
 // Must be first — initializes Sentry before any instrumented module loads.
-import './instrument';
+import { sentryEnabled } from './instrument';
 
 import { randomUUID } from 'node:crypto';
 import helmet from '@fastify/helmet';
@@ -8,7 +8,7 @@ import swaggerUi from '@fastify/swagger-ui';
 import * as Sentry from '@sentry/node';
 import Fastify from 'fastify';
 import fastifyRedis from '@fastify/redis';
-import { isProd, NODE_ENV, PORT } from './config/env';
+import { BUILD_VERSION, isProd, NODE_ENV, PORT, SENTRY_ENVIRONMENT } from './config/env';
 import { loggerConfig, rootLogger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
 import { createRedisClient } from './config/redis';
@@ -31,6 +31,11 @@ const app = Fastify({
 
 // Must be called before any plugin registration so Sentry intercepts the full error lifecycle.
 Sentry.setupFastifyErrorHandler(app);
+
+rootLogger.info(
+  { sentryEnabled, release: BUILD_VERSION, environment: SENTRY_ENVIRONMENT },
+  sentryEnabled ? 'Sentry initialized' : 'Sentry disabled (no DSN)',
+);
 
 // Security headers - disable CSP globally to allow swagger-ui inline styles/scripts
 app.register(helmet, { contentSecurityPolicy: false });

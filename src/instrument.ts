@@ -13,7 +13,9 @@ import {
 
 // Skip init entirely when no DSN is configured (local dev default) or when
 // running tests. Matches the same non-required-env pattern used elsewhere.
-if (SENTRY_DSN && NODE_ENV !== 'test') {
+export const sentryEnabled = Boolean(SENTRY_DSN) && NODE_ENV !== 'test';
+
+if (sentryEnabled) {
   Sentry.init({
     dsn: SENTRY_DSN,
     environment: SENTRY_ENVIRONMENT,
