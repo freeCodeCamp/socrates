@@ -51,17 +51,6 @@ pnpm run test:manual   # Smoke tests against a running server
 pnpm run generate-api-key
 ```
 
-Sentry release plumbing (CI-shaped; do not run locally except for dry-run debugging):
-
-```bash
-pnpm run release:new         # sentry-cli releases new $BUILD_VERSION
-pnpm run sourcemaps:inject   # injects debug IDs into ./dist
-pnpm run sourcemaps:upload   # uploads to the release
-pnpm run release:set-commits # --auto, walks git history
-pnpm run release:finalize    # marks release shipped
-pnpm run release:deploy      # sentry-cli deploys new -e $DEPLOY_ENV
-```
-
 ## Environment variables
 
 | Variable         | Purpose                      | Default     |
@@ -89,30 +78,37 @@ What ships:
 - **Logs** — pino `error` and `fatal` lines are mirrored to Sentry Logs via `Sentry.pinoIntegration`. `warn` and below stay in stdout only.
 - **Runtime metrics** — memory, CPU, event-loop delay, and process uptime are pushed at the SDK default 30 s interval via `nodeRuntimeMetricsIntegration`.
 - **Local variables** — captured into stack frames (`includeLocalVariables: true`) for faster crash triage.
+- **Boot log** — at startup the app logs `Sentry initialized` (with `release` + `environment`) or `Sentry disabled (no DSN)`, so a single `docker logs` line confirms whether the SDK is transmitting.
+
+### Smoke test
+
+`POST /debug/sentry` deliberately logs an error and throws a 500 to exercise the full error + log pipeline end to end. Auth-gated (`X-API-Key` outside dev/test); events are tagged `smoke_test=true` so alerts can exclude them. Use it after a deploy to confirm Issues + Logs land on the dashboard:
+
+```bash
+curl -X POST -H "X-API-Key: $API_KEY" https://<host>/debug/sentry
+```
+
+A `500` is the expected result — that is the test.
 
 ## Releases and source maps (CI)
 
-`build.yml` runs the full release lifecycle on every dispatch:
+`deploy.yaml` is the single CD workflow — one dispatch builds, pushes, and deploys. The target environment is the **branch you dispatch from**: `prod-current` → prd (registry tld `org`), anything else (`prod-staging`, feature branches) → stg (`dev`). No environment dropdown.
+
+Release and source maps are one step on the runner, before the Docker build, via `getsentry/action-release` (SHA-pinned). It creates the release, injects debug IDs, uploads maps from `./dist`, associates commits (`set_commits: auto`), and finalizes. `pnpm run build` runs on the runner only to emit the maps:
 
 ```
-pnpm install --frozen-lockfile
-pnpm run build                  # emits ./dist/**/*.js.map on the runner
-pnpm run release:new            # sentry-cli releases new $BUILD_VERSION
-pnpm run sourcemaps:inject      # injects debug IDs into ./dist
-pnpm run sourcemaps:upload      # uploads to the release
-pnpm run release:set-commits    # --auto, walks git history
-pnpm run release:finalize       # marks release shipped
+getsentry/action-release@<sha>   # release + sourcemaps + set_commits + finalize
 ```
 
 The runtime image strips `*.map` from `dist/` in the Docker build stage — maps are uploaded only to Sentry, never shipped in the container.
 
-`deploy.yml` adds a deploy marker after the Gantry trigger succeeds:
+After the Gantry webhook rolls the swarm services, the deploy job adds a deploy marker:
 
 ```
-sentry-cli deploys new -e $DEPLOY_ENV -r $BUILD_VERSION
+sentry-cli deploys new -e $DEPLOY_ENV -r $BUILD_VERSION   # DEPLOY_ENV = dev | org
 ```
 
-Build and deploy workflows are dispatched independently. Building an image without deploying still finalizes a Sentry release; the deploy marker is emitted only when `deploy.yml` actually runs.
+The Sentry environment is the registry tld (`dev`/`org`), matching the running app's `SENTRY_ENVIRONMENT` — not the `stg`/`prd` stack label.
 
 ## Required GitHub Actions secrets
 

@@ -14,6 +14,7 @@ import swaggerDefinition, { sharedSchemas } from './config/swagger';
 import { createRedisClient } from './config/redis';
 import rateLimiterHook from './lib/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
+import debugRoutes from './routes/debug';
 import healthRoutes from './routes/health';
 import hintRoutes from './routes/hint';
 
@@ -69,6 +70,7 @@ app.register(fastifyRedis, { client: redisClient, closeClient: true });
 
 // Routes
 app.register(healthRoutes);
+app.register(debugRoutes);
 
 // Rate-limit the /hint endpoint per user and globally
 app.register(async (instance) => {
