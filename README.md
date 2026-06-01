@@ -50,12 +50,12 @@ Returns service status and uptime. Pass `?extended=true` to also check Redis and
 
 Swagger UI. Only available in development (`NODE_ENV != production`).
 
-### `POST /debug/sentry`
+### `GET /debug/sentry`
 
 Sentry pipeline smoke test. Deliberately logs an error and throws a 500 so the captured exception and error log can be verified on the Sentry dashboard. Requires an `X-API-Key` header outside of development/testing. Events are tagged `smoke_test=true` so alerts can exclude them.
 
 ```bash
-curl -X POST -H "X-API-Key: $API_KEY" https://<host>/debug/sentry
+curl -H "X-API-Key: $API_KEY" https://<host>/debug/sentry
 ```
 
 A `500` response is expected — that is the test. Confirm the event in Sentry → Issues and the log in the Logs dataset.

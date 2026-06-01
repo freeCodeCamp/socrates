@@ -82,10 +82,10 @@ What ships:
 
 ### Smoke test
 
-`POST /debug/sentry` deliberately logs an error and throws a 500 to exercise the full error + log pipeline end to end. Auth-gated (`X-API-Key` outside dev/test); events are tagged `smoke_test=true` so alerts can exclude them. Use it after a deploy to confirm Issues + Logs land on the dashboard:
+`GET /debug/sentry` deliberately logs an error and throws a 500 to exercise the full error + log pipeline end to end. Auth-gated (`X-API-Key` outside dev/test); events are tagged `smoke_test=true` so alerts can exclude them. Use it after a deploy to confirm Issues + Logs land on the dashboard:
 
 ```bash
-curl -X POST -H "X-API-Key: $API_KEY" https://<host>/debug/sentry
+curl -H "X-API-Key: $API_KEY" https://<host>/debug/sentry
 ```
 
 A `500` is the expected result — that is the test.

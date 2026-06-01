@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { apiKeyAuthHook } from '../middleware/apiKeyAuth';
 
 async function debugRoutes(fastify: FastifyInstance) {
-  fastify.post(
+  fastify.get(
     '/debug/sentry',
     {
       preHandler: [apiKeyAuthHook],
