@@ -19,13 +19,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "test:manual": "ts-node scripts/test-hints.ts",
-    "generate-api-key": "ts-node scripts/generate-api-key.ts",
-    "sourcemaps:inject": "sentry-cli sourcemaps inject ./dist",
-    "sourcemaps:upload": "sentry-cli sourcemaps upload ./dist --release \"$BUILD_VERSION\"",
-    "release:new": "sentry-cli releases new \"$BUILD_VERSION\"",
-    "release:set-commits": "sentry-cli releases set-commits \"$BUILD_VERSION\" --auto",
-    "release:finalize": "sentry-cli releases finalize \"$BUILD_VERSION\"",
-    "release:deploy": "sentry-cli deploys new -e \"$DEPLOY_ENV\" -r \"$BUILD_VERSION\""
+    "generate-api-key": "ts-node scripts/generate-api-key.ts"
   },
   "author": "",
   "license": "MIT",
@@ -42,7 +36,6 @@
     "pino": "^10.3.1"
   },
   "devDependencies": {
-    "@sentry/cli": "^3.4.3",
     "@types/node": "^24.10.14",
     "nodemon": "^2.0.22",
     "oxlint": "^1.50.0",

@@ -36,16 +36,28 @@ Socrates is freeCodeCamp's hint API. Takes a camper's code, challenge descriptio
 - **Graceful shutdown flushes Sentry.** SIGINT/SIGTERM and `uncaughtException` handlers `await Sentry.close(2000)` before `process.exit`. `Sentry.close()` is a safe no-op when the SDK was never initialized (no `SENTRY_DSN`). If you add a new exit path, mirror this pattern. (Invariant V4.)
 - `includeLocalVariables: true` ships local variable values in stack frames. Privacy parity with the existing `/hint` body forwarding — both surfaces already see the learner's code, so this does not expand the data surface.
 - `nodeRuntimeMetricsIntegration()` pushes memory / CPU / event-loop delay / uptime to Sentry Metrics at the 30 s default interval. Cheap, useful, no config knob exposed.
-- `BUILD_VERSION` = `dev-<git-short-sha>` in dev (set by `dev` script wrapper), Docker ARG in prod (set by `build.yml` as `tagname=<sha>-<yyyymmdd>-<hhmm>`). Tags Sentry `release`, appears as `build` in every log line.
+- `BUILD_VERSION` = `dev-<git-short-sha>` in dev (set by `dev` script wrapper), Docker ARG in prod (set by `deploy.yaml` as `tagname=<sha>-<yyyymmdd>-<hhmm>`). Tags Sentry `release`, appears as `build` in every log line.
+- Boot logs the init decision: `instrument.ts` exports `sentryEnabled` (`Boolean(SENTRY_DSN) && NODE_ENV !== 'test'`), `index.ts` logs `Sentry initialized` / `Sentry disabled (no DSN)` with `release` + `environment`. One `docker logs` line confirms whether the SDK transmits — don't make init silent again.
 
-### Sentry release + source-map flow (CI)
+### Build + deploy (CI)
 
-- Release lifecycle (`releases new` → `sourcemaps inject + upload` → `set-commits --auto` → `releases finalize`) runs in `build.yml` on the runner BEFORE the docker buildx step. `pnpm run build` is invoked on the runner just for source-map emission; the Docker image rebuilds independently.
+- One workflow, `deploy.yaml` (`CD - Deploy - Socrates`), mirrors the main repo's `deploy-api.yml`: `workflow_dispatch` with NO environment input. **The branch you dispatch from is the environment** — `setup-jobs` reads `github.ref_name`:
+  - `prod-current` → `site_tld=org`, `tgt_env_short=prd`
+  - anything else (`prod-staging`, feature branches) → `site_tld=dev`, `tgt_env_short=stg`
+- DX: ship staging = run `deploy.yaml` from `prod-staging`; ship prod = fast-forward `prod-staging` → `prod-current`, run from `prod-current`. The GitHub "Use workflow from branch" picker is the stg/prd switch.
+- Two deliberate vocabularies — DO NOT conflate:
+  - **`tgt_env_short` = `stg` / `prd`** → swarm stack name (`<short>-socrates`), Gantry service filter, GitHub deployment environment, Tailscale CI hostname.
+  - **`site_tld` = `dev` / `org`** → DOCR image namespace AND the **Sentry environment**. The `sentry-cli deploys -e` value is `site_tld`, matching the app's `SENTRY_ENVIRONMENT` (= `DEPLOYMENT_ENV` in the swarm stack). **Sentry environments are `dev`/`org`, never `stg`/`prd`.**
+- `NODE_ENV` is `production` on BOTH stg and prd (set in the Portainer stack env). It is never the stg/prd discriminator — `site_tld` / `tgt_env_short` are.
+- Deploy mechanism: Tailscale → Gantry webhook (`/hooks/run-gantry`, filter `name=<stack>_svc-socrates`); the swarm pulls the freshly built `:<tagname>` + `:latest` image. (The main repo SSHes + `docker stack deploy`; socrates uses Gantry instead — only the mechanism differs.)
+
+### Sentry release + source maps (CI)
+
+- One step in the build job: `getsentry/action-release` (SHA-pinned `v3.6.1`) on the runner before the docker buildx step — creates the release, injects debug IDs, uploads maps from `./dist`, associates commits (`set_commits: auto`), finalizes. Replaces the former hand-sequenced `sentry-cli` lifecycle + the `release:*` / `sourcemaps:*` npm scripts (deleted; `@sentry/cli` is no longer a devDep). `pnpm run build` runs on the runner only to emit the maps; the Docker image rebuilds independently.
 - The production image strips `*.map` from `dist/` in the Dockerfile build stage (V5). Source maps live only in Sentry, never in the running container.
-- `deploy.yml` emits `sentry-cli deploys new -e <env> -r <build_version>` after the Gantry webhook returns. Build and deploy are independently dispatched — building without deploying still finalizes the release; the deploy marker fires only when `deploy.yml` actually runs.
-- All sentry-cli steps are gated on `env.SENTRY_AUTH_TOKEN != ''`. Fork PRs and dispatches without the secret stay green; release plumbing is simply skipped.
+- The deploy job runs `sentry-cli deploys new -e <dev|org> -r <tagname>` after the Gantry webhook (the only remaining `sentry-cli` use, installed ad-hoc).
+- action-release + the deploy marker are gated on `SENTRY_AUTH_TOKEN`. Fork PRs and tokenless dispatches stay green; release plumbing is simply skipped.
 - Required GitHub Actions secrets: `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT`. Token must have `project:releases` + `project:write` scopes.
-- Local-dev release scripts (`pnpm run release:new` etc.) read the same env. They're CI-shaped — don't run them locally except for dry-run debugging.
 
 ## Gotchas
 

@@ -1,0 +1,187 @@
+name: CD - Deploy - Socrates
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-socrates-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  setup-jobs:
+    name: Setup Jobs
+    runs-on: ubuntu-24.04
+    permissions: {}
+    outputs:
+      site_tld: ${{ steps.setup.outputs.site_tld }}
+      tgt_env_short: ${{ steps.setup.outputs.tgt_env_short }}
+    steps:
+      - name: Setup
+        id: setup
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          echo "Current branch: $BRANCH"
+
+          # Environment is the branch: prod-current ships prd, anything else stg.
+          case "$BRANCH" in
+            "prod-current")
+              echo "site_tld=org" >> "$GITHUB_OUTPUT"
+              echo "tgt_env_short=prd" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "site_tld=dev" >> "$GITHUB_OUTPUT"
+              echo "tgt_env_short=stg" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+  build:
+    name: Build & Push
+    runs-on: ubuntu-24.04
+    needs: setup-jobs
+    permissions:
+      contents: read
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+    outputs:
+      tagname: ${{ steps.tagname.outputs.tagname }}
+
+    steps:
+      - name: Checkout Source Files
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          # Full history required for action-release set_commits=auto to
+          # resolve the prior release commit range.
+          fetch-depth: 0
+
+      - name: Create a tagname
+        id: tagname
+        run: |
+          tagname=$(git rev-parse --short HEAD)-$(date +%Y%m%d)-$(date +%H%M)
+          echo "tagname=$tagname" >> "$GITHUB_ENV"
+          echo "tagname=$tagname" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version-file: '.node-version'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript (runner copy for source-map upload)
+        # Produces ./dist/**/*.js.map on the runner so action-release can inject
+        # debug IDs and upload them. The Docker image rebuilds independently and
+        # strips maps in its production stage — runner dist and image dist do
+        # not have to match.
+        env:
+          BUILD_VERSION: ${{ env.tagname }}
+        run: pnpm run build
+
+      - name: Sentry release + source maps
+        if: env.SENTRY_AUTH_TOKEN != ''
+        uses: getsentry/action-release@f71adb49d4b2aeeda98052d3de234bbb0f3e03ab # v3.6.1
+        with:
+          version: ${{ env.tagname }}
+          sourcemaps: ./dist
+          set_commits: auto
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@135ac0aa0eed4437d547c6f12c364d3006b42824 # v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Log in to DigitalOcean Container Registry with short-lived credentials
+        run: doctl registry login --expiry-seconds 1200
+
+      - name: Build & Push Image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            BUILD_VERSION=${{ env.tagname }}
+          tags: |
+            registry.digitalocean.com/${{ secrets.DOCR_NAME }}/${{ needs.setup-jobs.outputs.site_tld }}/socrates:${{ env.tagname }}
+            registry.digitalocean.com/${{ secrets.DOCR_NAME }}/${{ needs.setup-jobs.outputs.site_tld }}/socrates:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Docker Swarm -- ${{ needs.setup-jobs.outputs.tgt_env_short }}
+    runs-on: ubuntu-24.04
+    needs: [setup-jobs, build]
+    permissions:
+      deployments: write
+    env:
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+    environment:
+      name: ${{ needs.setup-jobs.outputs.tgt_env_short }}-socrates
+
+    steps:
+      - name: Setup and connect to Tailscale network
+        uses: tailscale/github-action@53acf823325fe9ca47f4cdaa951f90b4b0de5bb9 # v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          hostname: gha-${{ needs.setup-jobs.outputs.tgt_env_short }}-socrates-ci-${{ github.run_id }}
+          tags: tag:ci
+          version: latest
+
+      - name: Wait for Tailscale Network Readiness
+        run: |
+          echo "Waiting for Tailscale network to be ready..."
+          max_wait=60
+          elapsed=0
+
+          while [ $elapsed -lt $max_wait ]; do
+            if tailscale status --json | jq -e '.BackendState == "Running"' > /dev/null 2>&1; then
+              echo "Tailscale network is ready"
+              break
+            fi
+            sleep 2
+            elapsed=$((elapsed + 2))
+          done
+
+          if [ $elapsed -ge $max_wait ]; then
+            echo "Tailscale network not ready after ${max_wait}s"
+            exit 1
+          fi
+
+      - name: Trigger Gantry via Webhook
+        env:
+          WEBHOOK_HOST: ${{ secrets.WEBHOOK_HOST }}
+          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+          STACK_NAME: ${{ needs.setup-jobs.outputs.tgt_env_short }}-socrates
+        run: |
+          curl -fsS -X POST "https://$WEBHOOK_HOST/hooks/run-gantry" \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
+            -d "{\"GANTRY_SERVICES_FILTERS\":\"name=${STACK_NAME}_svc-socrates\"}"
+
+      - name: Install sentry-cli
+        if: env.SENTRY_AUTH_TOKEN != ''
+        run: npm install -g @sentry/cli@3.4.3
+
+      - name: Sentry — deploy marker
+        if: env.SENTRY_AUTH_TOKEN != ''
+        env:
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          BUILD_VERSION: ${{ needs.build.outputs.tagname }}
+          # Sentry environment = the registry tld (dev/org), matching the
+          # app's SENTRY_ENVIRONMENT (DEPLOYMENT_ENV) in the swarm stack —
+          # NOT the stg/prd stack label.
+          DEPLOY_ENV: ${{ needs.setup-jobs.outputs.site_tld }}
+        run: sentry-cli deploys new -e "$DEPLOY_ENV" -r "$BUILD_VERSION"
