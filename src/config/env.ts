@@ -1,7 +1,10 @@
 import path from 'node:path';
-import dotenv from 'dotenv';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+try {
+  process.loadEnvFile(path.resolve(process.cwd(), '.env'));
+} catch (err) {
+  if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
+}
 
 export const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
 export const NODE_ENV = process.env.NODE_ENV || 'development';
