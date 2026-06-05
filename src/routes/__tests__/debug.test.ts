@@ -48,6 +48,16 @@ describe('GET /debug/config', () => {
     expect(response.statusCode).toBe(200);
   });
 
+  it('tolerates json content-type with empty body', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/debug/config',
+      headers: { 'content-type': 'application/json', 'content-length': '0' },
+    });
+
+    expect(response.statusCode).toBe(200);
+  });
+
   it('returns resolved models with per-type env overrides applied', async () => {
     process.env.GROQ_MODEL_PYTHON = 'override-model';
 

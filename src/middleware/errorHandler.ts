@@ -3,7 +3,8 @@ import { toSafeError } from '../errors/groqApiError';
 import type { ApiError } from '../types/api';
 
 export function errorHandler(err: ApiError, req: FastifyRequest, reply: FastifyReply) {
-  const status = err.status && Number.isInteger(err.status) ? err.status : 500;
+  const statusSource = err.status ?? err.statusCode;
+  const status = statusSource && Number.isInteger(statusSource) ? statusSource : 500;
 
   // Defense-in-depth: strip axios internals before logging. groqClient
   // already sanitizes inside its own catch, but if any future caller
