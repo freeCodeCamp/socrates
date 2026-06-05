@@ -31,6 +31,7 @@ export const MODEL_CB_COOLDOWN_MS = process.env.MODEL_CB_COOLDOWN_MS
   ? Number(process.env.MODEL_CB_COOLDOWN_MS)
   : 30000; // cooldown
 export const ENABLE_EXTENDED_HEALTH = process.env.ENABLE_EXTENDED_HEALTH === 'true';
+export const DEBUG_SOCRATES = process.env.DEBUG_SOCRATES === 'true';
 export const API_KEY = process.env.API_KEY || '';
 export const SERVER_URL = process.env.SERVER_URL || `http://localhost:${PORT}`;
 export const BUILD_VERSION = process.env.BUILD_VERSION || 'unknown';

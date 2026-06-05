@@ -6,6 +6,9 @@ vi.mock('../../config/env', () => ({
   SERVER_URL: 'http://localhost:3001',
   isProd: false,
   LOG_LEVEL: 'silent',
+  BUILD_VERSION: 'test',
+  GROQ_MODEL: 'default-model',
+  DEBUG_SOCRATES: true,
 }));
 
 import Fastify, { type FastifyInstance } from 'fastify';
@@ -30,6 +33,37 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await app.close();
+});
+
+describe('GET /debug/config', () => {
+  beforeAll(() => {
+    for (const type of ['HTML', 'CSS', 'JAVASCRIPT', 'PYTHON']) {
+      delete process.env[`GROQ_MODEL_${type}`];
+    }
+  });
+
+  it('returns 200', async () => {
+    const response = await app.inject({ method: 'GET', url: '/debug/config' });
+
+    expect(response.statusCode).toBe(200);
+  });
+
+  it('returns resolved models with per-type env overrides applied', async () => {
+    process.env.GROQ_MODEL_PYTHON = 'override-model';
+
+    const response = await app.inject({ method: 'GET', url: '/debug/config' });
+
+    delete process.env.GROQ_MODEL_PYTHON;
+    expect(response.json()).toEqual({
+      defaultModel: 'default-model',
+      models: {
+        html: 'default-model',
+        css: 'default-model',
+        javascript: 'default-model',
+        python: 'override-model',
+      },
+    });
+  });
 });
 
 describe('GET /debug/sentry', () => {

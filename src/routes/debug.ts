@@ -1,8 +1,45 @@
 import * as Sentry from '@sentry/node';
 import type { FastifyInstance } from 'fastify';
+import { DEBUG_SOCRATES } from '../config/env';
+import { resolvedModelConfig } from '../lib/groqClient';
 import { apiKeyAuthHook } from '../middleware/apiKeyAuth';
+import { CHALLENGE_TYPES } from '../types/sanitizer';
 
 async function debugRoutes(fastify: FastifyInstance) {
+  if (!DEBUG_SOCRATES) {
+    return;
+  }
+
+  fastify.get(
+    '/debug/config',
+    {
+      preHandler: [apiKeyAuthHook],
+      schema: {
+        description:
+          'Resolved Groq model configuration: default model plus the per-challenge-type resolution of GROQ_MODEL_<TYPE> overrides. Models only — never echoes keys, DSNs, or other secrets; the response schema acts as an allowlist.',
+        tags: ['Debug'],
+        security: [{ ApiKeyAuth: [] }],
+        response: {
+          200: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              defaultModel: { type: 'string' },
+              models: {
+                type: 'object',
+                additionalProperties: false,
+                properties: Object.fromEntries(
+                  CHALLENGE_TYPES.map((type) => [type, { type: 'string' }]),
+                ),
+              },
+            },
+          },
+        },
+      },
+    },
+    async () => resolvedModelConfig(),
+  );
+
   fastify.get(
     '/debug/sentry',
     {

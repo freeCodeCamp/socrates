@@ -10,6 +10,7 @@ import Fastify from 'fastify';
 import fastifyRedis from '@fastify/redis';
 import {
   BUILD_VERSION,
+  DEBUG_SOCRATES,
   ENABLE_EXTENDED_HEALTH,
   GLOBAL_LIMIT,
   GROQ_BACKOFF_BASE_MS,
@@ -32,13 +33,12 @@ import {
 import { loggerConfig, rootLogger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
 import { createRedisClient } from './config/redis';
-import { selectModel } from './lib/groqClient';
+import { resolvedModelConfig } from './lib/groqClient';
 import rateLimiterHook from './lib/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 import debugRoutes from './routes/debug';
 import healthRoutes from './routes/health';
 import hintRoutes from './routes/hint';
-import { CHALLENGE_TYPES } from './types/sanitizer';
 
 const app = Fastify({
   logger: loggerConfig,
@@ -84,8 +84,7 @@ rootLogger.info(
     logLevel: LOG_LEVEL,
     redisUrl: redactedRedisUrl,
     groq: {
-      defaultModel: selectModel(),
-      models: Object.fromEntries(CHALLENGE_TYPES.map((type) => [type, selectModel(type)])),
+      ...resolvedModelConfig(),
       timeoutMs: GROQ_TIMEOUT_MS(),
       maxRetries: GROQ_MAX_RETRIES(),
       backoffBaseMs: GROQ_BACKOFF_BASE_MS(),
@@ -96,6 +95,7 @@ rootLogger.info(
     circuitBreaker: { failures: MODEL_CB_FAILURES, cooldownMs: MODEL_CB_COOLDOWN_MS },
     rateLimit: { perUserPerMin: PER_USER_LIMIT, globalPerMin: GLOBAL_LIMIT },
     extendedHealth: ENABLE_EXTENDED_HEALTH,
+    debugEndpoints: DEBUG_SOCRATES,
   },
   'boot config',
 );

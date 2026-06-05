@@ -39,6 +39,8 @@ Socrates is freeCodeCamp's hint API. Takes a camper's code, challenge descriptio
 - `BUILD_VERSION` = `dev-<git-short-sha>` in dev (set by `dev` script wrapper), Docker ARG in prod (set by `deploy.yaml` as `tagname=<sha>-<yyyymmdd>-<hhmm>`). Tags Sentry `release`, appears as `build` in every log line.
 - Boot logs the init decision: `instrument.ts` exports `sentryEnabled` (`Boolean(SENTRY_DSN) && NODE_ENV !== 'test'`), `index.ts` logs `Sentry initialized` / `Sentry disabled (no DSN)` with `release` + `environment`. One `docker logs` line confirms whether the SDK transmits — don't make init silent again.
 - `GET /debug/sentry` (`src/routes/debug.ts`) is a keep-around Sentry pipeline smoke test: auth-gated, logs an error + throws a deliberate 500 (tagged `smoke_test=true`) to verify the error-capture (Issues) + error-log (Logs) paths on the dashboard. The throw is intentional — don't "fix" it. Returns 500 by design. GET (not POST) so an empty-body request can't be rejected by the JSON body parser before the handler runs.
+- **All `/debug/*` routes are gated behind `DEBUG_SOCRATES=true`** (off by default). When off, the plugin registers nothing — routes 404 like any unknown path, indistinguishable from nonexistent. Set the env var in the swarm stack to enable; flag state appears as `debugEndpoints` in the `boot config` log line.
+- `GET /debug/config` returns the resolved Groq model config (default + per-type). Response schema is `additionalProperties: false` on purpose — it's the allowlist that keeps secrets out even if the handler regresses. Don't loosen it.
 
 ### Build + deploy (CI)
 

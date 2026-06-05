@@ -14,7 +14,7 @@ import {
 import { type Logger, rootLogger } from '../config/logger';
 import { GroqApiError, toSafeError } from '../errors/groqApiError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
-import type { ChallengeType } from '../types/sanitizer';
+import { CHALLENGE_TYPES, type ChallengeType } from '../types/sanitizer';
 
 export interface GroqRequestOptions {
   systemPrompt: string;
@@ -38,6 +38,21 @@ export function selectModel(challengeType?: ChallengeType): string {
   const envVarName = `GROQ_MODEL_${challengeType.toUpperCase()}`;
   const typeSpecificModel = process.env[envVarName];
   return typeSpecificModel || GROQ_MODEL;
+}
+
+export interface ModelConfig {
+  defaultModel: string;
+  models: Record<ChallengeType, string>;
+}
+
+export function resolvedModelConfig(): ModelConfig {
+  return {
+    defaultModel: selectModel(),
+    models: Object.fromEntries(CHALLENGE_TYPES.map((type) => [type, selectModel(type)])) as Record<
+      ChallengeType,
+      string
+    >,
+  };
 }
 
 // Circuit breaker state interface
