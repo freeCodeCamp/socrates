@@ -77,7 +77,7 @@ function getTestFiles(): string[] {
   return fs
     .readdirSync(TEST_CASES_DIR)
     .filter((f) => f.endsWith('.json'))
-    .sort()
+    .toSorted()
     .map((f) => path.join(TEST_CASES_DIR, f));
 }
 
