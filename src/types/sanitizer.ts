@@ -1,4 +1,5 @@
-export type ChallengeType = 'html' | 'css' | 'javascript' | 'python';
+export const CHALLENGE_TYPES = ['html', 'css', 'javascript', 'python'] as const;
+export type ChallengeType = (typeof CHALLENGE_TYPES)[number];
 
 export interface RawRequestBody {
   userId?: string;

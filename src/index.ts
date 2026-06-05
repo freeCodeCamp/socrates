@@ -8,15 +8,37 @@ import swaggerUi from '@fastify/swagger-ui';
 import * as Sentry from '@sentry/node';
 import Fastify from 'fastify';
 import fastifyRedis from '@fastify/redis';
-import { BUILD_VERSION, isProd, NODE_ENV, PORT, SENTRY_ENVIRONMENT } from './config/env';
+import {
+  BUILD_VERSION,
+  ENABLE_EXTENDED_HEALTH,
+  GLOBAL_LIMIT,
+  GROQ_BACKOFF_BASE_MS,
+  GROQ_EMPTY_RESPONSE_RETRIES,
+  GROQ_MAX_RETRIES,
+  GROQ_MAX_TOKENS,
+  GROQ_MAX_TOKENS_RETRY,
+  GROQ_TIMEOUT_MS,
+  isProd,
+  LOG_LEVEL,
+  MODEL_CB_COOLDOWN_MS,
+  MODEL_CB_FAILURES,
+  NODE_ENV,
+  PER_USER_LIMIT,
+  PORT,
+  REDIS_URL,
+  SENTRY_ENVIRONMENT,
+  SENTRY_TRACES_SAMPLE_RATE,
+} from './config/env';
 import { loggerConfig, rootLogger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
 import { createRedisClient } from './config/redis';
+import { selectModel } from './lib/groqClient';
 import rateLimiterHook from './lib/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 import debugRoutes from './routes/debug';
 import healthRoutes from './routes/health';
 import hintRoutes from './routes/hint';
+import { CHALLENGE_TYPES } from './types/sanitizer';
 
 const app = Fastify({
   logger: loggerConfig,
@@ -34,8 +56,48 @@ const app = Fastify({
 Sentry.setupFastifyErrorHandler(app);
 
 rootLogger.info(
-  { sentryEnabled, release: BUILD_VERSION, environment: SENTRY_ENVIRONMENT },
+  {
+    sentryEnabled,
+    release: BUILD_VERSION,
+    environment: SENTRY_ENVIRONMENT,
+    tracesSampleRate: SENTRY_TRACES_SAMPLE_RATE,
+  },
   sentryEnabled ? 'Sentry initialized' : 'Sentry disabled (no DSN)',
+);
+
+const redactedRedisUrl = (() => {
+  try {
+    const url = new URL(REDIS_URL);
+    if (url.password) {
+      url.password = '***';
+    }
+    return url.toString();
+  } catch {
+    return '<unparseable REDIS_URL>';
+  }
+})();
+
+rootLogger.info(
+  {
+    nodeEnv: NODE_ENV,
+    port: PORT,
+    logLevel: LOG_LEVEL,
+    redisUrl: redactedRedisUrl,
+    groq: {
+      defaultModel: selectModel(),
+      models: Object.fromEntries(CHALLENGE_TYPES.map((type) => [type, selectModel(type)])),
+      timeoutMs: GROQ_TIMEOUT_MS(),
+      maxRetries: GROQ_MAX_RETRIES(),
+      backoffBaseMs: GROQ_BACKOFF_BASE_MS(),
+      maxTokens: GROQ_MAX_TOKENS(),
+      maxTokensRetry: GROQ_MAX_TOKENS_RETRY(),
+      emptyResponseRetries: GROQ_EMPTY_RESPONSE_RETRIES(),
+    },
+    circuitBreaker: { failures: MODEL_CB_FAILURES, cooldownMs: MODEL_CB_COOLDOWN_MS },
+    rateLimit: { perUserPerMin: PER_USER_LIMIT, globalPerMin: GLOBAL_LIMIT },
+    extendedHealth: ENABLE_EXTENDED_HEALTH,
+  },
+  'boot config',
 );
 
 // Security headers - disable CSP globally to allow swagger-ui inline styles/scripts

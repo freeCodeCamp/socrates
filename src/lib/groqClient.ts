@@ -30,7 +30,7 @@ export interface GroqResponse {
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
-function selectModel(challengeType?: ChallengeType): string {
+export function selectModel(challengeType?: ChallengeType): string {
   if (!challengeType) {
     return GROQ_MODEL;
   }
