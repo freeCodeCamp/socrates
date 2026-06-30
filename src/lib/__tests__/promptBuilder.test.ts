@@ -59,6 +59,21 @@ describe('buildPrompt', () => {
     expect(result.userPrompt).toContain('Test hint');
   });
 
+  it('does not interpret $ substitution patterns in user input', () => {
+    const result = buildPrompt(baseSanitized({ userInput: 'a$`b$&c$$d' }));
+    expect(result.userPrompt).toContain('a$`b$&c$$d');
+  });
+
+  it('does not splice other fields via a placeholder in user input', () => {
+    const result = buildPrompt(baseSanitized({ description: '{hints}', hints: 'LEAK' }));
+    expect(result.userPrompt).toContain('{hints}');
+  });
+
+  it('system prompt instructs to treat tagged content as untrusted data', () => {
+    const result = buildPrompt(baseSanitized());
+    expect(result.systemPrompt.toLowerCase()).toContain('untrusted');
+  });
+
   it('throws PromptSizeError when combined prompt exceeds MAX_PROMPT_CHARS', () => {
     const huge = 'x'.repeat(40000);
     expect(() => buildPrompt(baseSanitized({ description: huge }))).toThrow(PromptSizeError);

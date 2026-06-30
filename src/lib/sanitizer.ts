@@ -11,6 +11,12 @@ function isValidChallengeType(s: unknown): s is ChallengeType {
   return typeof s === 'string' && VALID_CHALLENGE_TYPES.includes(s as ChallengeType);
 }
 
+const PROMPT_FRAME_TAGS = /<\s*\/?\s*(?:challenge_description|student_code|failing_test)\s*>/gi;
+
+function stripPromptFrames(s: string): string {
+  return s.replace(PROMPT_FRAME_TAGS, '');
+}
+
 export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
   if (!raw) throw new InputValidationError('Empty request body');
 
@@ -37,9 +43,9 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
   const sanitized: SanitizedRequest = {
     userId,
     challengeType: isValidChallengeType(challengeType) ? challengeType : undefined,
-    description: description.trim(),
-    userInput: effectiveUserInput.trim(),
-    seed: typeof seed === 'string' ? seed.trim() : '',
+    description: stripPromptFrames(description.trim()),
+    userInput: stripPromptFrames(effectiveUserInput.trim()),
+    seed: stripPromptFrames(typeof seed === 'string' ? seed.trim() : ''),
   };
 
   // Process hints array - require at least one failing test and include only the FIRST failing test
@@ -55,7 +61,7 @@ export function sanitizeRequest(raw: RawRequestBody): SanitizedRequest {
     );
 
     if (firstFailed && typeof firstFailed.text === 'string') {
-      sanitized.hints = firstFailed.text.trim();
+      sanitized.hints = stripPromptFrames(firstFailed.text.trim());
     } else {
       throw new InputValidationError('At least one failing test hint is required');
     }

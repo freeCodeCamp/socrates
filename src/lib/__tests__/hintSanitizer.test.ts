@@ -30,4 +30,29 @@ describe('sanitizeHintOutput', () => {
     const clean = 'This is a clean hint with no special characters';
     expect(sanitizeHintOutput(clean)).toBe(clean);
   });
+
+  it('neutralizes injected HTML tags', () => {
+    const result = sanitizeHintOutput('Look <img src=x onerror=alert(1)> here');
+    expect(result).not.toContain('<img');
+    expect(result).toContain('&lt;img');
+  });
+
+  it('neutralizes script tags', () => {
+    expect(sanitizeHintOutput('<script>alert(1)</script>')).not.toContain('<script>');
+  });
+
+  it('preserves bare <code> tags', () => {
+    expect(sanitizeHintOutput('Add a <code>h1</code> element')).toBe(
+      'Add a <code>h1</code> element',
+    );
+  });
+
+  it('does not restore <code> carrying attributes', () => {
+    const result = sanitizeHintOutput('<code onmouseover=alert(1)>x</code>');
+    expect(result).not.toContain('<code onmouseover');
+  });
+
+  it('leaves entity-encoded markup as visible text', () => {
+    expect(sanitizeHintOutput('Use &lt;h1&gt; tags')).toContain('&lt;h1&gt;');
+  });
 });
