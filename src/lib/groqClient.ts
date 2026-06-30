@@ -145,7 +145,7 @@ async function makeGroqApiCall(
               'gen_ai.usage.input_tokens': data.usage.prompt_tokens,
               'gen_ai.usage.output_tokens': data.usage.completion_tokens,
               'gen_ai.usage.total_tokens': data.usage.total_tokens,
-              'gen_ai.usage.cached_tokens': cachedTokens,
+              'gen_ai.usage.input_tokens.cached': cachedTokens,
               'gen_ai.usage.cache_hit_rate': Number(cacheHitRate),
             });
 

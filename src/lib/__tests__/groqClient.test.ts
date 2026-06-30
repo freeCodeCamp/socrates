@@ -147,7 +147,7 @@ describe('generateFromGroq Sentry span instrumentation', () => {
 
   it('records cached tokens on the span', async () => {
     await callWithUsage();
-    expect(sentry.attrs['gen_ai.usage.cached_tokens']).toBe(1000);
+    expect(sentry.attrs['gen_ai.usage.input_tokens.cached']).toBe(1000);
   });
 
   it('records numeric cache hit rate on the span', async () => {
