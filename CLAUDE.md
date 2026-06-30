@@ -24,7 +24,7 @@ Socrates is freeCodeCamp's hint API. Takes a camper's code, challenge descriptio
 - **Never log raw `AxiosError` objects.** `err.config.headers` carries `Authorization: Bearer ...`. Pass through `toSafeError()` from `src/errors/groqApiError.ts` first.
 - Sentry Logs ships `error` + `fatal` only; warn-level ops signals stay in pino stdout. Sentry traces skip `/health` + `/health/version` (probe quota).
 - **Graceful shutdown flushes Sentry.** Every exit path must `await Sentry.close(2000)` before `process.exit`. Safe no-op when no `SENTRY_DSN`. (Invariant V4.)
-- `includeLocalVariables: true` is privacy parity with the existing `/hint` body forwarding — does not expand the data surface.
+- **`/hint` body NOT in Sentry** — `sendDefaultPii: false` gates request-body capture (verified 2026-06-30, SOCRATES-API-3: method+URL only, no `request.data`). `beforeSend` body-scrub is dead. Only learner-content path = `includeLocalVariables: true` (stack locals). Capturing the body needs `sendDefaultPii: true` + `maxRequestBodySize`.
 - **`X-API-Key` reaches Sentry but arrives `[Filtered]`** (verified 2026-06-05, SOCRATES-API-2). Protection = Sentry's default server-side Data Scrubbing (SaaS org setting — don't disable "Use Default Scrubbers"); local layer = pino `redact` paths in `src/config/logger.ts`. SDK v11 flips header capture to opt-in.
 - `BUILD_VERSION` = `dev-<git-short-sha>` in dev (`dev` script wrapper), Docker ARG in prod (`deploy.yaml` `tagname=<sha>-<yyyymmdd>-<hhmm>`). Tags Sentry `release`, appears as `build` in every log line.
 - Boot logs the Sentry init decision (`Sentry initialized` / `Sentry disabled (no DSN)`) — one `docker logs` line confirms whether the SDK transmits. Don't make init silent again.

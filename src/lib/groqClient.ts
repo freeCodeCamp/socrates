@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/node';
 import axios, { AxiosError } from 'axios';
 import {
   GROQ_API_KEY,
@@ -89,60 +90,88 @@ async function makeGroqApiCall(
   let lastError: Error | null = null;
 
   const maxRetries = GROQ_MAX_RETRIES();
+  const requestModel = selectModel(challengeType);
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const res = await axios.post(
-        GROQ_API_URL,
+      return await Sentry.startSpan(
         {
-          model: selectModel(challengeType),
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          max_tokens: maxTokens,
-          temperature: 0.5,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${GROQ_API_KEY}`,
-            'Content-Type': 'application/json',
+          name: `chat ${requestModel}`,
+          op: 'gen_ai.chat',
+          attributes: {
+            'gen_ai.operation.name': 'chat',
+            'gen_ai.provider.name': 'groq',
+            'gen_ai.request.model': requestModel,
+            'gen_ai.request.max_tokens': maxTokens,
+            'gen_ai.request.attempt': attempt,
+            challenge_type: challengeType ?? 'unknown',
           },
-          timeout: GROQ_TIMEOUT_MS(),
+        },
+        async (span) => {
+          const res = await axios.post(
+            GROQ_API_URL,
+            {
+              model: requestModel,
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              max_tokens: maxTokens,
+              temperature: 0.5,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${GROQ_API_KEY}`,
+                'Content-Type': 'application/json',
+              },
+              timeout: GROQ_TIMEOUT_MS(),
+            },
+          );
+
+          const data = res.data;
+          const hint = data.choices?.[0]?.message?.content || '';
+          const model_used = data.model || GROQ_MODEL;
+          const completionTokens = data.usage?.completion_tokens;
+
+          // Log token usage and cache metrics for cost monitoring
+          if (data.usage) {
+            const cachedTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
+            const cacheHitRate =
+              data.usage.prompt_tokens > 0
+                ? ((cachedTokens / data.usage.prompt_tokens) * 100).toFixed(1)
+                : '0.0';
+
+            span.setAttributes({
+              'gen_ai.response.model': model_used,
+              'gen_ai.usage.input_tokens': data.usage.prompt_tokens,
+              'gen_ai.usage.output_tokens': data.usage.completion_tokens,
+              'gen_ai.usage.total_tokens': data.usage.total_tokens,
+              'gen_ai.usage.cached_tokens': cachedTokens,
+              'gen_ai.usage.cache_hit_rate': Number(cacheHitRate),
+            });
+
+            logger.info(
+              {
+                model: model_used,
+                challengeType: challengeType || 'unknown',
+                promptTokens: data.usage.prompt_tokens,
+                cachedTokens,
+                cacheHitRate: `${cacheHitRate}%`,
+                completionTokens: data.usage.completion_tokens,
+                totalTokens: data.usage.total_tokens,
+                maxTokensUsed: maxTokens,
+              },
+              'groq token usage',
+            );
+          }
+
+          span.setAttribute('gen_ai.response.outcome', hint ? 'success' : 'empty');
+
+          // Reset circuit breaker on success
+          cb.failures = 0;
+
+          return { hint: hint.trim(), model_used, completionTokens };
         },
       );
-
-      const data = res.data;
-      const hint = data.choices?.[0]?.message?.content || '';
-      const model_used = data.model || GROQ_MODEL;
-      const completionTokens = data.usage?.completion_tokens;
-
-      // Log token usage and cache metrics for cost monitoring
-      if (data.usage) {
-        const cachedTokens = data.usage.prompt_tokens_details?.cached_tokens || 0;
-        const cacheHitRate =
-          data.usage.prompt_tokens > 0
-            ? ((cachedTokens / data.usage.prompt_tokens) * 100).toFixed(1)
-            : '0.0';
-
-        logger.info(
-          {
-            model: model_used,
-            challengeType: challengeType || 'unknown',
-            promptTokens: data.usage.prompt_tokens,
-            cachedTokens,
-            cacheHitRate: `${cacheHitRate}%`,
-            completionTokens: data.usage.completion_tokens,
-            totalTokens: data.usage.total_tokens,
-            maxTokensUsed: maxTokens,
-          },
-          'groq token usage',
-        );
-      }
-
-      // Reset circuit breaker on success
-      cb.failures = 0;
-
-      return { hint: hint.trim(), model_used, completionTokens };
     } catch (err) {
       // Compute retryability while the raw error (incl. AxiosError shape) is
       // available, then immediately strip axios internals. From this point

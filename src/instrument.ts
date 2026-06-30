@@ -26,14 +26,11 @@ if (sentryEnabled) {
     // sampled at the configured rate.
     tracesSampler: ({ name }) => {
       if (typeof name === 'string' && /\s\/health(\/version)?(\?|$)/.test(name)) return 0;
+      if (typeof name === 'string' && /\s\/hint(\?|$)/.test(name)) return 0.5;
       return SENTRY_TRACES_SAMPLE_RATE as number;
     },
     sendDefaultPii: false,
     maxValueLength: 2048,
-    // Capture local variable values in stack frames. The `/hint` request
-    // body is already forwarded to Sentry (see beforeSend comment below),
-    // so local-var capture does not expand the data surface meaningfully
-    // and significantly improves stack-frame debug velocity.
     includeLocalVariables: true,
     // Ship pino error/fatal lines to Sentry Logs.  Warn-level events
     // (redis reconnections, retryable Groq failures, auth rejections)
@@ -69,13 +66,6 @@ if (sentryEnabled) {
         if (headers.authorization) headers.authorization = '[Filtered]';
         if (headers.cookie) headers.cookie = '[Filtered]';
       }
-
-      // Intentionally NOT scrubbing the /hint request body. The learner's
-      // `userInput` is the same content we forward to Groq, so Sentry
-      // visibility is not a meaningful expansion of the data surface, and
-      // keeping it lets us debug real failures AND detect malicious or
-      // prompt-injection content sent to the LLM. If that calculus ever
-      // changes, filter `event.request.data.userInput` here.
 
       return event;
     },
