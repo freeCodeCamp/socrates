@@ -26,7 +26,7 @@ if (sentryEnabled) {
     // sampled at the configured rate.
     tracesSampler: ({ name }) => {
       if (typeof name === 'string' && /\s\/health(\/version)?(\?|$)/.test(name)) return 0;
-      if (typeof name === 'string' && /\s\/hint(\?|$)/.test(name)) return 0.5;
+      if (typeof name === 'string' && /\s\/hint(\?|$)/.test(name)) return 1;
       return SENTRY_TRACES_SAMPLE_RATE as number;
     },
     sendDefaultPii: false,
