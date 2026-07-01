@@ -2,7 +2,7 @@
 
 freeCodeCamp's hint API for coding challenges. When a camper is stuck, Socrates takes their code, the challenge description, and failing tests, then returns a hint that points them in the right direction without giving the answer away.
 
-Built with Fastify and TypeScript. Uses Groq for inference (gpt-oss-20b by default). Supports HTML, CSS, JavaScript, and Python challenges, each with its own system prompt.
+Built with Fastify and TypeScript. Uses Groq for inference (`openai/gpt-oss-20b` by default). Supports HTML, CSS, JavaScript, and Python challenges, each with its own system prompt.
 
 ## How it works
 
@@ -38,13 +38,13 @@ Response:
 ```json
 {
   "hint": "What value does your function currently return when no explicit return statement is present?",
-  "model_used": "gpt-oss-20b"
+  "model_used": "openai/gpt-oss-20b"
 }
 ```
 
 ### `GET /health`
 
-Returns service status and uptime. Pass `?extended=true` to also check Redis and Groq connectivity.
+Returns service status and uptime. Set `ENABLE_EXTENDED_HEALTH=true` to also check Redis and Groq connectivity.
 
 ### `GET /api-docs`
 
@@ -52,13 +52,7 @@ Swagger UI. Only available in development (`NODE_ENV != production`).
 
 ### `GET /debug/sentry`
 
-Sentry pipeline smoke test. Deliberately logs an error and throws a 500 so the captured exception and error log can be verified on the Sentry dashboard. Requires an `X-API-Key` header outside of development/testing. Events are tagged `smoke_test=true` so alerts can exclude them.
-
-```bash
-curl -H "X-API-Key: $API_KEY" https://<host>/debug/sentry
-```
-
-A `500` response is expected — that is the test. Confirm the event in Sentry → Issues and the log in the Logs dataset.
+Sentry pipeline smoke test — deliberately logs an error and throws a `500` (the `500` is the expected result). Events are tagged `smoke_test=true` so alerts can exclude them. Gated behind `DEBUG_SOCRATES=true`; when off, all `/debug/*` routes 404. Also needs an `X-API-Key` header outside of development/testing. Full walkthrough in the [operator guide](./docs/README.md#smoke-test).
 
 ## Running locally
 

@@ -41,6 +41,7 @@ vi.mock('../../lib/rateLimiter', () => ({
 
 import Fastify, { type FastifyInstance } from 'fastify';
 import { sharedSchemas } from '../../config/swagger';
+import { GroqApiError } from '../../errors/groqApiError';
 import { ModelUnavailableError } from '../../errors/modelUnavailableError';
 import { generateFromGroq } from '../../lib/groqClient';
 import { errorHandler } from '../../middleware/errorHandler';
@@ -154,5 +155,36 @@ describe('POST /hint', () => {
     const body = response.json();
     expect(body.hint).toContain('temporarily unavailable');
     expect(body.model_used).toBe('fallback');
+  });
+
+  it('returns 200 with fallback hint when a retryable GroqApiError escapes', async () => {
+    vi.mocked(generateFromGroq).mockRejectedValueOnce(
+      new GroqApiError('Groq API error (503): unavailable', 503, true),
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/hint',
+      payload: validBody,
+    });
+
+    expect(response.statusCode).toBe(200);
+
+    const body = response.json();
+    expect(body.model_used).toBe('fallback');
+  });
+
+  it('surfaces a non-retryable GroqApiError as an error response (Sentry-visible)', async () => {
+    vi.mocked(generateFromGroq).mockRejectedValueOnce(
+      new GroqApiError('Groq API error (401): unauthorized', 401, false),
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/hint',
+      payload: validBody,
+    });
+
+    expect(response.statusCode).toBe(401);
   });
 });
