@@ -13,7 +13,9 @@ Socrates is freeCodeCamp's hint API. Takes a camper's code, challenge descriptio
 
 ### `/hint` request flow
 
-`apiKeyAuthHook` -> `rateLimiterHook` (scoped to `/hint` via an encapsulated plugin context) -> `sanitizeRequest` -> `buildPrompt` -> `generateFromGroq` -> `sanitizeHintOutput` -> response.
+`rateLimiterHook` (plugin `preHandler`, scoped to `/hint` via an encapsulated plugin) -> `apiKeyAuthHook` (route `preHandler`) -> `sanitizeRequest` -> `buildPrompt` -> `generateFromGroq` -> `sanitizeHintOutput` -> response.
+
+Non-obvious: Fastify runs a plugin-level `preHandler` before a route's own `preHandler`, so the rate limiter fires **before** API-key auth — unauthenticated requests still consume the bucket. (`rateLimiterHook` = `instance.addHook` in `src/index.ts`; `apiKeyAuthHook` = route `preHandler:[…]` in `src/routes/hint.ts`.)
 
 ## Observability
 
@@ -34,23 +36,14 @@ Socrates is freeCodeCamp's hint API. Takes a camper's code, challenge descriptio
 
 ### Build + deploy (CI)
 
-- One workflow, `deploy.yaml` (`CD - Deploy - Socrates`), mirrors the main repo's `deploy-api.yml`: `workflow_dispatch` with NO environment input. **The branch you dispatch from is the environment** — `setup-jobs` reads `github.ref_name`:
-  - `prod-current` → `site_tld=org`, `tgt_env_short=prd`
-  - anything else (`prod-staging`, feature branches) → `site_tld=dev`, `tgt_env_short=stg`
-- DX: ship staging = run `deploy.yaml` from `prod-staging`; ship prod = fast-forward `prod-staging` → `prod-current`, run from `prod-current`.
+Operator walkthrough — scripts, release steps, source maps, required secrets — lives in [docs/README.md](./docs/README.md). Non-obvious invariants only here:
+
+- One workflow, `deploy.yaml` (`CD - Deploy - Socrates`): `workflow_dispatch`, NO environment input. **The branch you dispatch from is the environment** (`setup-jobs` reads `github.ref_name`): `prod-current` → `site_tld=org` + `tgt_env_short=prd`; anything else (`prod-staging`, feature branches) → `site_tld=dev` + `tgt_env_short=stg`. DX: ship staging = dispatch from `prod-staging`; ship prod = fast-forward `prod-staging` → `prod-current`, dispatch from `prod-current`.
 - Two deliberate vocabularies — DO NOT conflate:
-  - **`tgt_env_short` = `stg` / `prd`** → swarm stack name (`<short>-socrates`), Gantry service filter, GitHub deployment environment, Tailscale CI hostname.
+  - **`tgt_env_short` = `stg` / `prd`** → swarm stack name (`<short>-socrates`), Gantry service filter (`name=<stack>_svc-socrates`), GitHub deployment environment, Tailscale CI hostname.
   - **`site_tld` = `dev` / `org`** → DOCR image namespace AND the **Sentry environment** (= app's `SENTRY_ENVIRONMENT` = `DEPLOYMENT_ENV` in the swarm stack). **Sentry environments are `dev`/`org`, never `stg`/`prd`.**
 - `NODE_ENV` is `production` on BOTH stg and prd. Never the stg/prd discriminator — `site_tld` / `tgt_env_short` are.
-- Deploy mechanism: Tailscale → Gantry webhook (`/hooks/run-gantry`, filter `name=<stack>_svc-socrates`); the swarm pulls the freshly built `:<tagname>` + `:latest` image.
-
-### Sentry release + source maps (CI)
-
-- `getsentry/action-release` (SHA-pinned) runs in the build job before docker buildx: creates the release, injects debug IDs, uploads maps from `./dist`, associates commits, finalizes. `pnpm run build` runs on the runner only to emit maps; the Docker image rebuilds independently.
-- The production image strips `*.map` from `dist/` in the Dockerfile build stage (V5). Source maps live only in Sentry, never in the running container.
-- The deploy job runs `sentry-cli deploys new -e <dev|org> -r <tagname>` after the Gantry webhook (the only remaining `sentry-cli` use, installed ad-hoc).
-- Release steps are gated on `SENTRY_AUTH_TOKEN` — fork PRs and tokenless dispatches stay green.
-- Required secrets: `SENTRY_AUTH_TOKEN` (`project:releases` + `project:write` scopes), `SENTRY_ORG`, `SENTRY_PROJECT`.
+- Prod image strips `*.map` from `dist/` in the Docker build stage (V5) — source maps live only in Sentry, never in the running container. Release plumbing is gated on `SENTRY_AUTH_TOKEN`, so fork PRs and tokenless dispatches stay green.
 
 ## Gotchas
 
@@ -58,3 +51,4 @@ Socrates is freeCodeCamp's hint API. Takes a camper's code, challenge descriptio
 - **API key auth skipped outside production/staging.** `apiKeyAuthHook` short-circuits for any other `NODE_ENV`.
 - **Per-challenge model override.** `groqClient.ts` reads `GROQ_MODEL_<TYPE>` env vars via dynamic `process.env` lookup (not in `env.ts`), falling back to `GROQ_MODEL`.
 - **Groq has an in-memory circuit breaker + fallback hint.** After `MODEL_CB_FAILURES` failures the breaker opens for `MODEL_CB_COOLDOWN_MS`; `/hint` returns a canned fallback with `model_used: "fallback"`. Intentional — don't "fix" it by throwing.
+- **Transient Groq failures MUST NOT escape as unhandled errors** (root cause of SOCRATES-API-3/-4). `makeGroqApiCall` throws `ModelUnavailableError` after exhausting retries on a _retryable_ error (timeout / 5xx / 429 / network); `/hint`'s catch maps `ModelUnavailableError` **and** retryable `GroqApiError` → the graceful fallback. Only _non-retryable_ Groq errors (auth, 4xx) surface to the error handler → Sentry `handled:no` (a real bug you want to see). Do NOT revert the exhausted-retry path to `throw finalError` — that reintroduces the unhandled-500 class. The exhausted-retry summary logs at `warn` (stdout only), never `error` (which ships to Sentry Logs).

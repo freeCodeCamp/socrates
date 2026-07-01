@@ -201,7 +201,7 @@ async function makeGroqApiCall(
   // All retries failed - handle circuit breaker
   const finalError = lastError || new Error('Groq generate failed');
   handleAllRetriesFailed(finalError, cb, logger);
-  throw finalError;
+  throw new ModelUnavailableError('Groq unavailable after exhausting retries');
 }
 
 export async function generateFromGroq(options: GroqRequestOptions): Promise<GroqResponse> {
@@ -317,7 +317,7 @@ function handleAllRetriesFailed(
   cb: { failures: number; openedUntil: number },
   logger: Logger,
 ): void {
-  logger.error({ err }, 'all groq retry attempts failed');
+  logger.warn({ err }, 'all groq retry attempts failed');
 
   // Increment failure count and possibly open circuit breaker
   cb.failures = (cb.failures || 0) + 1;
