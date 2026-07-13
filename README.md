@@ -8,7 +8,7 @@ Built with Fastify and TypeScript. Uses Groq for inference (`openai/gpt-oss-20b`
 
 - Camper's code, challenge description, and failing tests go in
 - A challenge-type-specific prompt is built and sent to Groq
-- The response is stripped of any code patterns and returned as a plain-text hint
+- The response is sanitized to allow only attribute-free `<code>` markup
 - Per-user and global rate limiting (Redis token buckets) prevent abuse
 - Circuit breaker on the Groq client opens after repeated failures
 
@@ -37,10 +37,13 @@ Response:
 
 ```json
 {
-  "hint": "What value does your function currently return when no explicit return statement is present?",
+  "hint": "What value does your <code>sum</code> function return without an explicit <code>return</code> statement?",
   "model_used": "openai/gpt-oss-20b"
 }
 ```
+
+The `hint` value may contain limited HTML. Only attribute-free `<code>` elements are returned;
+all other model-generated tags are safely encoded as text.
 
 ### `GET /health`
 

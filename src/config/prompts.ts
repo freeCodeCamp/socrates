@@ -1,4 +1,4 @@
-import type { ChallengeType } from '../types/sanitizer';
+import type { ChallengeType } from '../types/hint';
 
 // Base prompt structure shared across all challenge types
 const BASE_ROLE = `You are a freeCodeCamp teaching assistant helping students fix failing tests.

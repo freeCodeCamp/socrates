@@ -5,7 +5,7 @@ import type { FastifyReply, FastifyRequest } from 'fastify';
 import { GLOBAL_LIMIT, PER_USER_LIMIT } from '../config/env';
 import { toSafeError } from '../errors/groqApiError';
 import { rootLogger } from '../config/logger';
-import type { RawRequestBody } from '../types/sanitizer';
+import type { HintRequestBody } from '../types/hint';
 
 export interface RateLimiterOptions {
   redisClient: Redis;
@@ -55,7 +55,7 @@ export function rateLimiterHook(opts: RateLimiterOptions) {
 
   return async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const body = request.body as RawRequestBody | undefined;
+      const body = request.body as HintRequestBody | undefined;
       const identifier = body?.userId || request.ip || 'anonymous';
       const now = nowMs();
 

@@ -96,7 +96,7 @@ describe('toSafeError (bearer-leak regression)', () => {
 describe('GroqApiError', () => {
   it('does not leak the bearer when constructed from a sanitized snapshot', () => {
     const safe = toSafeError(makeAxiosError());
-    const wrapped = new GroqApiError('Groq API error (401): unauthorized', 401, false, safe);
+    const wrapped = new GroqApiError('Model provider request failed', 502, false, safe, 401);
     expect(JSON.stringify({ err: wrapped })).not.toContain(CANARY);
   });
 });

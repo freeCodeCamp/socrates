@@ -15,7 +15,7 @@ import {
 import { type Logger, rootLogger } from '../config/logger';
 import { GroqApiError, toSafeError } from '../errors/groqApiError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
-import { CHALLENGE_TYPES, type ChallengeType } from '../types/sanitizer';
+import { CHALLENGE_TYPES, type ChallengeType } from '../types/hint';
 
 export interface GroqRequestOptions {
   systemPrompt: string;
@@ -26,7 +26,7 @@ export interface GroqRequestOptions {
 
 export interface GroqResponse {
   hint: string;
-  model_used?: string;
+  model_used: string;
 }
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -166,8 +166,10 @@ async function makeGroqApiCall(
 
           span.setAttribute('gen_ai.response.outcome', hint ? 'success' : 'empty');
 
-          // Reset circuit breaker on success
-          cb.failures = 0;
+          // An empty HTTP response is not a usable model success. Preserve
+          // the failure count until generateFromGroq either gets a real hint
+          // or records one exhausted empty-response failure.
+          if (hint) cb.failures = 0;
 
           return { hint: hint.trim(), model_used, completionTokens };
         },
@@ -184,7 +186,7 @@ async function makeGroqApiCall(
 
       if (!retryable) {
         handleNonRetryableError(lastError, logger);
-        throw createGroqError(lastError, status);
+        throw createGroqError(lastError, status, retryable);
       }
 
       logger.warn({ attempt, maxRetries, err: lastError }, 'groq request failed');
@@ -273,18 +275,13 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
     );
   }
 
-  // All retries exhausted, return empty result (let the caller handle it)
-  logger.error(
-    {
-      initialMaxTokens,
-      retryMaxTokens,
-      emptyResponseRetries,
-      challengeType: challengeType || 'unknown',
-    },
+  handleAllRetriesFailed(
+    new Error('Groq returned an empty response after all retries'),
+    cb,
+    logger,
     'groq returned empty response after all retries',
   );
-
-  return { hint: '', model_used: result.model_used };
+  throw new ModelUnavailableError('Groq returned an empty response after all retries');
 }
 
 function isRetryableError(err: Error): boolean {
@@ -316,8 +313,9 @@ function handleAllRetriesFailed(
   err: Error,
   cb: { failures: number; openedUntil: number },
   logger: Logger,
+  message = 'all groq retry attempts failed',
 ): void {
-  logger.warn({ err }, 'all groq retry attempts failed');
+  logger.warn({ err }, message);
 
   // Increment failure count and possibly open circuit breaker
   cb.failures = (cb.failures || 0) + 1;
@@ -331,18 +329,11 @@ function handleAllRetriesFailed(
   }
 }
 
-function createGroqError(err: Error, axiosStatus?: number): Error {
-  // `err` is already a sanitized snapshot (see catch block above), so we
-  // can't `instanceof AxiosError`-check it. The caller passes the original
-  // HTTP status via `axiosStatus` when the source was an AxiosError.
+function createGroqError(err: Error, axiosStatus: number | undefined, isRetryable: boolean): Error {
   if (axiosStatus !== undefined) {
-    const isRetryable = isRetryableError(err);
-    const message = `Groq API error (${axiosStatus}): ${err.message}`;
-    return new GroqApiError(message, axiosStatus, isRetryable, err);
+    return new GroqApiError('Model provider request failed', 502, isRetryable, err, axiosStatus);
   }
 
-  // For non-axios errors, check if they're retryable
-  const isRetryable = isRetryableError(err);
   if (isRetryable) {
     return new GroqApiError(`Groq request error: ${err.message}`, 503, true, err);
   }

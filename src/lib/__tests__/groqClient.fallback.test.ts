@@ -90,6 +90,26 @@ describe('generateFromGroq transient-failure handling', () => {
 
   it('still surfaces a non-retryable 401 as GroqApiError (genuine bug, Sentry-visible)', async () => {
     vi.mocked(axios.post).mockRejectedValue(httpError(401));
-    await expect(call()).rejects.toBeInstanceOf(GroqApiError);
+    const error = await call().catch((err: unknown) => err);
+    expect(error).toBeInstanceOf(GroqApiError);
+    expect(error).toMatchObject({
+      message: 'Model provider request failed',
+      status: 502,
+      upstreamStatus: 401,
+      isRetryable: false,
+    });
+  });
+
+  it('treats exhausted empty responses as model unavailability', async () => {
+    vi.mocked(axios.post).mockResolvedValue({
+      data: {
+        model: 'test-model',
+        choices: [{ message: { content: '   ' } }],
+        usage: { completion_tokens: 0 },
+      },
+    });
+
+    await expect(call()).rejects.toBeInstanceOf(ModelUnavailableError);
+    expect(silentLogger.error).not.toHaveBeenCalled();
   });
 });

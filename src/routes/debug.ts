@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { DEBUG_SOCRATES } from '../config/env';
 import { resolvedModelConfig } from '../lib/groqClient';
 import { apiKeyAuthHook } from '../middleware/apiKeyAuth';
-import { CHALLENGE_TYPES } from '../types/sanitizer';
+import { CHALLENGE_TYPES } from '../types/hint';
 
 async function debugRoutes(fastify: FastifyInstance) {
   if (!DEBUG_SOCRATES) {

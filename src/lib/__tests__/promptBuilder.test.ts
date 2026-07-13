@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { PromptSizeError } from '../../errors/promptSizeError';
-import type { SanitizedRequest } from '../../types/sanitizer';
+import type { NormalizedHintRequest } from '../../types/hint';
 import { buildPrompt } from '../promptBuilder';
 
-function baseSanitized(overrides: Partial<SanitizedRequest> = {}): SanitizedRequest {
+function baseSanitized(overrides: Partial<NormalizedHintRequest> = {}): NormalizedHintRequest {
   return {
     userId: 'user-1',
     description: 'Write a function that adds two numbers',

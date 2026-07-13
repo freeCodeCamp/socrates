@@ -1,6 +1,6 @@
 import { getSystemPrompt, MAX_PROMPT_CHARS, USER_PROMPT_TEMPLATE } from '../config/prompts';
 import { PromptSizeError } from '../errors/promptSizeError';
-import type { ChallengeType, SanitizedRequest } from '../types/sanitizer';
+import type { ChallengeType, NormalizedHintRequest } from '../types/hint';
 
 function interpolate(template: string, values: Record<string, string | undefined>) {
   let out = template;
@@ -18,7 +18,7 @@ export interface BuiltPrompt {
   challengeType?: ChallengeType;
 }
 
-export function buildPrompt(sanitized: SanitizedRequest): BuiltPrompt {
+export function buildPrompt(sanitized: NormalizedHintRequest): BuiltPrompt {
   const desc = sanitized.description || '';
   const code = sanitized.userInput || '';
   const seed = sanitized.seed || '';
