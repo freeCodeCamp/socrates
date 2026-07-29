@@ -3,11 +3,11 @@ import { PromptSizeError } from '../errors/promptSizeError';
 import type { ChallengeType, NormalizedHintRequest } from '../types/hint';
 
 function interpolate(template: string, values: Record<string, string | undefined>) {
-  let out = template;
-  for (const [k, v] of Object.entries(values)) {
-    out = out.replace(new RegExp(`\\{${k}\\}`, 'g'), v ? v : '');
-  }
-  return out;
+  const keys = Object.keys(values);
+  if (keys.length === 0) return template;
+
+  const pattern = new RegExp(`\\{(${keys.join('|')})\\}`, 'g');
+  return template.replace(pattern, (_match, key: string) => values[key] ?? '');
 }
 
 export interface BuiltPrompt {

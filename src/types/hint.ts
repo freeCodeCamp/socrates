@@ -3,7 +3,7 @@ export type ChallengeType = (typeof CHALLENGE_TYPES)[number];
 
 export interface HintTestResult {
   text: string;
-  failed: boolean;
+  failed?: boolean;
 }
 
 export interface HintRequestBody {

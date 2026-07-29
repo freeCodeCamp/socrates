@@ -48,11 +48,11 @@ async function call() {
 describe('generateFromGroq empty-response circuit breaker', () => {
   beforeEach(() => {
     vi.mocked(axios.post).mockResolvedValue({
-      data: { model: 'test-model', choices: [{ message: { content: '' } }] },
+      data: { model: 'test-model', choices: [{ message: { content: '   \n\t' } }] },
     });
   });
 
-  it('opens the circuit after consecutive exhausted empty responses', async () => {
+  it('opens the circuit after consecutive exhausted whitespace-only responses', async () => {
     await expect(call()).rejects.toBeInstanceOf(ModelUnavailableError);
     await expect(call()).rejects.toBeInstanceOf(ModelUnavailableError);
     expect(axios.post).toHaveBeenCalledTimes(2);

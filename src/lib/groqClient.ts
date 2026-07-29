@@ -128,7 +128,8 @@ async function makeGroqApiCall(
           );
 
           const data = res.data;
-          const hint = data.choices?.[0]?.message?.content || '';
+          const content = data.choices?.[0]?.message?.content;
+          const hint = typeof content === 'string' ? content.trim() : '';
           const model_used = data.model || GROQ_MODEL;
           const completionTokens = data.usage?.completion_tokens;
 
@@ -171,7 +172,7 @@ async function makeGroqApiCall(
           // or records one exhausted empty-response failure.
           if (hint) cb.failures = 0;
 
-          return { hint: hint.trim(), model_used, completionTokens };
+          return { hint, model_used, completionTokens };
         },
       );
     } catch (err) {

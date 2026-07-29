@@ -40,7 +40,7 @@ const OUTPUT_FILE = path.join(SCRIPT_DIR, 'test-results.md');
 // --- Interfaces ---
 interface TestHint {
   text: string;
-  failed: boolean;
+  failed?: boolean;
 }
 
 interface TestRequest {
@@ -96,7 +96,10 @@ const validContractRequest = {
   challengeType: 'javascript',
   description: 'Return the sum of two numbers.',
   userInput: 'function sum(a, b) { return a + b; }',
-  hints: [{ text: 'The function should return a value.', failed: true }],
+  hints: [
+    { text: 'The function is declared.' },
+    { text: 'The function should return a value.', failed: true },
+  ],
 };
 
 const contractCases: ContractCase[] = [
@@ -132,14 +135,6 @@ const contractCases: ContractCase[] = [
     payload: {
       ...validContractRequest,
       hints: [{ text: 'This test passed.', failed: false }],
-    },
-    expectedStatus: 400,
-  },
-  {
-    name: 'every hint requires an explicit failed flag',
-    payload: {
-      ...validContractRequest,
-      hints: [{ text: 'Missing failure state.' }],
     },
     expectedStatus: 400,
   },

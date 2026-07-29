@@ -100,23 +100,23 @@ export const sharedSchemas = [
       description: {
         type: 'string',
         pattern: '\\S',
-        maxLength: 4000,
+        maxLength: 10000,
         description: 'Description of the coding challenge or problem',
       },
       userInput: {
         type: 'string',
-        maxLength: 16000,
+        maxLength: 50000,
         description: "The user's current code attempt",
       },
       seed: {
         type: 'string',
-        maxLength: 16000,
+        maxLength: 50000,
         description: 'Optional seed code or starter template',
       },
       hints: {
         type: 'array',
         minItems: 1,
-        maxItems: 100,
+        maxItems: 200,
         description: 'Array of test results with hint text',
         contains: {
           type: 'object',
@@ -128,7 +128,7 @@ export const sharedSchemas = [
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['text', 'failed'],
+          required: ['text'],
           properties: {
             text: {
               type: 'string',

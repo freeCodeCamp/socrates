@@ -5,6 +5,12 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+const PROMPT_FRAME_TAGS = /<\s*\/?\s*(?:challenge_description|student_code|failing_test)\s*>/gi;
+
+function stripPromptFrameTags(value: string): string {
+  return value.replace(PROMPT_FRAME_TAGS, '');
+}
+
 /**
  * Applies domain-level normalization after Fastify has validated the request shape.
  * Runtime guards remain as defense in depth for direct callers and unit tests.
@@ -42,10 +48,10 @@ export function normalizeHintRequest(raw: HintRequestBody): NormalizedHintReques
   return {
     userId: userId.trim(),
     challengeType,
-    description: description.trim(),
-    userInput: effectiveUserInput.trim(),
-    seed: typeof seed === 'string' ? seed.trim() : '',
-    hints: firstFailed.text.trim(),
+    description: stripPromptFrameTags(description.trim()),
+    userInput: stripPromptFrameTags(effectiveUserInput.trim()),
+    seed: stripPromptFrameTags(typeof seed === 'string' ? seed.trim() : ''),
+    hints: stripPromptFrameTags(firstFailed.text.trim()),
   };
 }
 

@@ -29,9 +29,15 @@ Request body:
   "description": "Write a function that returns the sum of two numbers",
   "userInput": "function sum(a, b) { a + b }",
   "seed": "function sum(a, b) { }",
-  "hints": [{ "text": "Expected 5 but received undefined", "failed": true }]
+  "hints": [
+    { "text": "The first test passed" },
+    { "text": "Expected 5 but received undefined", "failed": true }
+  ]
 }
 ```
+
+Passing test entries may omit `failed`. At least one entry must explicitly include
+`"failed": true`.
 
 Response:
 

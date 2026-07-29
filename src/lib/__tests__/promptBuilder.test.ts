@@ -59,8 +59,31 @@ describe('buildPrompt', () => {
     expect(result.userPrompt).toContain('Test hint');
   });
 
+  it('does not replace placeholders contained in untrusted values', () => {
+    const result = buildPrompt(
+      baseSanitized({
+        description: 'Keep the literal {hints} placeholder',
+        hints: 'Do not splice this value into the description',
+      }),
+    );
+
+    expect(result.userPrompt).toContain('Keep the literal {hints} placeholder');
+  });
+
+  it('preserves dollar substitution patterns in untrusted values', () => {
+    const result = buildPrompt(baseSanitized({ userInput: 'a$`b$&c$$d' }));
+
+    expect(result.userPrompt).toContain('a$`b$&c$$d');
+  });
+
+  it('instructs the model to treat framed request content as untrusted', () => {
+    const result = buildPrompt(baseSanitized());
+
+    expect(result.systemPrompt.toLowerCase()).toContain('untrusted');
+  });
+
   it('throws PromptSizeError when combined prompt exceeds MAX_PROMPT_CHARS', () => {
-    const huge = 'x'.repeat(40000);
+    const huge = 'x'.repeat(100001);
     expect(() => buildPrompt(baseSanitized({ description: huge }))).toThrow(PromptSizeError);
   });
 });

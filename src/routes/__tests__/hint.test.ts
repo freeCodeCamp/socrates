@@ -164,14 +164,14 @@ describe('POST /hint', () => {
     ['no failing hint', { ...validBody, hints: [{ text: 'Passing test', failed: false }] }],
     ['wrong field type', { ...validBody, description: 42 }],
     ['over-limit userId', { ...validBody, userId: 'u'.repeat(129) }],
-    ['over-limit description', { ...validBody, description: 'd'.repeat(4001) }],
-    ['over-limit userInput', { ...validBody, userInput: 'c'.repeat(16001) }],
+    ['over-limit description', { ...validBody, description: 'd'.repeat(10001) }],
+    ['over-limit userInput', { ...validBody, userInput: 'c'.repeat(50001) }],
     ['over-limit hint text', { ...validBody, hints: [{ text: 'h'.repeat(4001), failed: true }] }],
     [
       'too many hints',
       {
         ...validBody,
-        hints: Array.from({ length: 101 }, (_, index) => ({
+        hints: Array.from({ length: 201 }, (_, index) => ({
           text: `Hint ${index}`,
           failed: index === 0,
         })),
@@ -184,13 +184,43 @@ describe('POST /hint', () => {
         hints: [{ text: 'Failed test', failed: true, extra: 'not allowed' }],
       },
     ],
-    ['missing hint failed flag', { ...validBody, hints: [{ text: 'Failed test' }] }],
   ])('returns 400 for %s', async (_name, payload) => {
     const response = await app.inject({ method: 'POST', url: '/hint', payload });
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual(
       expect.objectContaining({ message: expect.any(String), status: 400 }),
     );
+  });
+
+  it('accepts passing hints without failed and selects an explicitly failing hint', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/hint',
+      payload: {
+        ...validBody,
+        hints: [{ text: 'This test passed' }, { text: 'This test failed', failed: true }],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+  });
+
+  it('accepts fields at the upstream size limits', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/hint',
+      payload: {
+        ...validBody,
+        description: 'd'.repeat(10000),
+        userInput: 'c'.repeat(50000),
+        hints: [
+          { text: 'Failed test', failed: true },
+          ...Array.from({ length: 199 }, (_, index) => ({ text: `Passing test ${index}` })),
+        ],
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
   });
 
   it('accepts seed when userInput is omitted', async () => {
