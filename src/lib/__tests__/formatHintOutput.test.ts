@@ -59,4 +59,38 @@ describe('formatHintOutput', () => {
   it('returns an empty string for empty input', () => {
     expect(formatHintOutput('   ')).toBe('');
   });
+
+  it('keeps attributes readable as text on escaped elements', () => {
+    expect(formatHintOutput('Your <img src="cat.jpg"> is missing alt text.')).toBe(
+      'Your &lt;img src="cat.jpg"&gt; is missing alt text.',
+    );
+  });
+
+  it('keeps attributes readable as text inside code elements', () => {
+    expect(formatHintOutput('Use <code><meta charset="utf-8"></code>.')).toBe(
+      'Use <code>&lt;meta charset="utf-8"&gt;</code>.',
+    );
+  });
+
+  it('does not let raw-text elements swallow the closing code tag', () => {
+    expect(formatHintOutput('Wrap it in <code><textarea></code> and try again.')).toBe(
+      'Wrap it in <code>&lt;textarea&gt;</code> and try again.',
+    );
+  });
+
+  it('escapes HTML comments instead of deleting them', () => {
+    expect(formatHintOutput('Comments look like <!-- this -->, and try again.')).toBe(
+      'Comments look like &lt;!-- this --&gt;, and try again.',
+    );
+  });
+
+  it('escapes doctype declarations instead of deleting them', () => {
+    expect(formatHintOutput('Start with <!doctype html> at the top.')).toBe(
+      'Start with &lt;!doctype html&gt; at the top.',
+    );
+  });
+
+  it('escapes a bare ampersand', () => {
+    expect(formatHintOutput('Tom & Jerry')).toBe('Tom &amp; Jerry');
+  });
 });
