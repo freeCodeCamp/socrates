@@ -71,6 +71,22 @@ describe('normalizeHintRequest', () => {
     expect(result.hints).toBe('failureinjected');
   });
 
+  it('removes prompt-frame tags nested inside themselves', () => {
+    const result = normalizeHintRequest(
+      validBody({
+        description: '<challenge_<challenge_description>description>',
+        userInput: '<stu<student_code>dent_code>',
+        seed: '</stu</student_code>dent_code>',
+        hints: [{ text: '<fail<failing_test>ing_test>', failed: true }],
+      }),
+    );
+
+    expect(result.description).toBe('');
+    expect(result.userInput).toBe('');
+    expect(result.seed).toBe('');
+    expect(result.hints).toBe('');
+  });
+
   it('preserves ordinary HTML in learner code', () => {
     const result = normalizeHintRequest(
       validBody({ userInput: '<main><output id="result"></output></main>' }),
