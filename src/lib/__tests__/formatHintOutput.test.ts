@@ -118,6 +118,18 @@ describe('formatHintOutput', () => {
     expect(formatHintOutput('Write &Lt;code&Gt; here.')).toBe('Write &Lt;code&Gt; here.');
   });
 
+  it('drops attribute values containing a closing angle bracket', () => {
+    expect(formatHintOutput('Use <code data-x="1>2">compare</code> here.')).toBe(
+      'Use <code>compare</code> here.',
+    );
+  });
+
+  it('drops single-quoted attribute values containing a closing angle bracket', () => {
+    expect(formatHintOutput("Use <code data-x='1>2'>compare</code> here.")).toBe(
+      'Use <code>compare</code> here.',
+    );
+  });
+
   it('does not treat similarly named elements as code', () => {
     expect(formatHintOutput('Use <code-block> and <codeX> here.')).toBe(
       'Use &lt;code-block&gt; and &lt;codeX&gt; here.',

@@ -7,7 +7,7 @@ export const MAX_HINT_RESPONSE_CHARS =
   MAX_HINT_CODE_POINTS * MAX_CHARS_PER_ESCAPED_CODE_POINT + ELLIPSIS_CHARS;
 
 const BARE_AMPERSAND = /&(?!(?:[a-zA-Z][a-zA-Z0-9]{1,31}|#\d{1,7}|#[xX][0-9a-fA-F]{1,6});)/g;
-const RAW_CODE_TAG = /<(\/?)code(?=[\s/>])[^>]*>/gi;
+const RAW_CODE_TAG = /<(\/?)code(?=[\s/>])(?:"[^"]*"|'[^']*'|[^>"'])*>/gi;
 
 function truncateCodePoints(value: string): string {
   const codePoints = Array.from(value);
