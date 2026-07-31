@@ -73,42 +73,67 @@ export const sharedSchemas = [
   {
     $id: 'HintRequest',
     type: 'object',
-    required: ['userId', 'description', 'userInput'],
+    additionalProperties: false,
+    required: ['userId', 'description', 'hints'],
+    anyOf: [
+      {
+        required: ['userInput'],
+        properties: { userInput: { type: 'string', pattern: '\\S' } },
+      },
+      {
+        required: ['seed'],
+        properties: { seed: { type: 'string', pattern: '\\S' } },
+      },
+    ],
     properties: {
       userId: {
         type: 'string',
+        pattern: '\\S',
+        maxLength: 128,
         description: 'Unique identifier for the user making the request',
-        example: 'user-12345',
       },
       challengeType: {
         type: 'string',
         enum: ['html', 'css', 'javascript', 'python'],
         description: 'Type of challenge for optimized prompts. If not provided, uses full prompt.',
-        example: 'javascript',
       },
       description: {
         type: 'string',
+        pattern: '\\S',
+        maxLength: 10000,
         description: 'Description of the coding challenge or problem',
-        example: 'Write a function that returns the sum of two numbers',
       },
       userInput: {
         type: 'string',
+        maxLength: 50000,
         description: "The user's current code attempt",
-        example: 'function sum(a, b) { return a + b }',
       },
       seed: {
         type: 'string',
+        maxLength: 50000,
         description: 'Optional seed code or starter template',
-        example: 'function sum(a, b) { }',
       },
       hints: {
         type: 'array',
+        minItems: 1,
+        maxItems: 200,
         description: 'Array of test results with hint text',
+        contains: {
+          type: 'object',
+          required: ['failed'],
+          properties: {
+            failed: { const: true },
+          },
+        },
         items: {
           type: 'object',
+          additionalProperties: false,
+          required: ['text'],
           properties: {
             text: {
               type: 'string',
+              pattern: '\\S',
+              maxLength: 4000,
               description: 'The test message text',
             },
             failed: {
@@ -117,18 +142,20 @@ export const sharedSchemas = [
             },
           },
         },
-        example: [{ text: 'Expected 5 but received undefined', failed: true }],
       },
     },
   },
   {
     $id: 'HintResponse',
     type: 'object',
+    additionalProperties: false,
+    required: ['hint', 'model_used'],
     properties: {
       hint: {
         type: 'string',
-        description: 'The AI-generated hint to help the user',
-        example: 'Check that your function has a return statement.',
+        description:
+          'The AI-generated hint. Only <code> elements without attributes are active HTML; all other tags are encoded as text.',
+        example: 'Check whether your <code>sum</code> function returns a value.',
       },
       model_used: {
         type: 'string',

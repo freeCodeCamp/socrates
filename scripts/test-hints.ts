@@ -3,6 +3,7 @@
 // test-hints.ts
 // Runs hint API tests using JSON test case files
 // Usage: pnpm run test:manual [test-file.json] [--report]
+//        pnpm run test:manual --contract-only
 //
 // Environment Variables:
 //   BASE_URL      - API base URL (default: http://localhost:3001)
@@ -15,9 +16,11 @@
 //   REQUEST_DELAY=0 pnpm run test:manual          # Run all tests without delay
 //   pnpm run test:manual 01-html-wrong-text.json  # Run single test
 //   pnpm run test:manual --report                 # Run all tests and generate report
+//   pnpm run test:manual --contract-only          # Run local validation/auth checks only
 
 import * as fs from 'fs';
 import * as path from 'path';
+import sanitizeHtml from 'sanitize-html';
 
 // --- ANSI colors ---
 const RED = '\x1b[0;31m';
@@ -37,16 +40,16 @@ const OUTPUT_FILE = path.join(SCRIPT_DIR, 'test-results.md');
 // --- Interfaces ---
 interface TestHint {
   text: string;
-  failed: boolean;
+  failed?: boolean;
 }
 
 interface TestRequest {
   userId: string;
   challengeType?: string;
-  userInput: string;
+  userInput?: string;
   description: string;
   seed?: string;
-  hints?: TestHint[];
+  hints: TestHint[];
 }
 
 interface TestCase {
@@ -61,6 +64,13 @@ interface HintResponse {
   model_used?: string;
   message?: string;
   status?: number;
+}
+
+interface ContractCase {
+  name: string;
+  payload: Record<string, unknown>;
+  expectedStatus: number;
+  apiKey?: string | null;
 }
 
 // --- Helpers ---
@@ -81,14 +91,72 @@ function getTestFiles(): string[] {
     .map((f) => path.join(TEST_CASES_DIR, f));
 }
 
+const validContractRequest = {
+  userId: 'contract-test-user',
+  challengeType: 'javascript',
+  description: 'Return the sum of two numbers.',
+  userInput: 'function sum(a, b) { return a + b; }',
+  hints: [
+    { text: 'The function is declared.' },
+    { text: 'The function should return a value.', failed: true },
+  ],
+};
+
+const contractCases: ContractCase[] = [
+  {
+    name: 'missing API key is rejected before processing',
+    payload: validContractRequest,
+    expectedStatus: 401,
+    apiKey: null,
+  },
+  {
+    name: 'invalid API key is rejected before processing',
+    payload: validContractRequest,
+    expectedStatus: 403,
+    apiKey: `${API_KEY}-invalid`,
+  },
+  {
+    name: 'unknown request fields are rejected',
+    payload: { ...validContractRequest, extra: 'not allowed' },
+    expectedStatus: 400,
+  },
+  {
+    name: 'unsupported challenge types are rejected',
+    payload: { ...validContractRequest, challengeType: 'ruby' },
+    expectedStatus: 400,
+  },
+  {
+    name: 'userInput or seed is required',
+    payload: { ...validContractRequest, userInput: undefined },
+    expectedStatus: 400,
+  },
+  {
+    name: 'at least one failing hint is required',
+    payload: {
+      ...validContractRequest,
+      hints: [{ text: 'This test passed.', failed: false }],
+    },
+    expectedStatus: 400,
+  },
+  {
+    name: 'whitespace-only descriptions are rejected',
+    payload: { ...validContractRequest, description: '   ' },
+    expectedStatus: 400,
+  },
+  {
+    name: 'over-limit user IDs are rejected',
+    payload: { ...validContractRequest, userId: 'u'.repeat(129) },
+    expectedStatus: 400,
+  },
+];
+
 // --- Output ---
 function printHeader(): void {
-  const maskedKey = API_KEY.length > 8 ? API_KEY.slice(0, 8) + '...' : API_KEY + '...';
   console.log(`\n${BLUE}════════════════════════════════════════════════════════════════${NC}`);
   console.log(`${BLUE}  Socrates - Hint API Test Runner${NC}`);
   console.log(`${BLUE}════════════════════════════════════════════════════════════════${NC}`);
   console.log(`  Base URL: ${BASE_URL}`);
-  console.log(`  API Key:  ${maskedKey}`);
+  console.log(`  API Key:  ${API_KEY ? '[configured]' : '[missing]'}`);
   console.log(`  Delay:    ${REQUEST_DELAY}s between requests`);
   console.log(`${BLUE}════════════════════════════════════════════════════════════════${NC}\n`);
 }
@@ -111,6 +179,51 @@ async function checkHealth(): Promise<void> {
   }
 }
 
+async function runContractTests(): Promise<boolean> {
+  console.log(`${YELLOW}Running local API contract checks...${NC}`);
+  let failed = 0;
+
+  for (const testCase of contractCases) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const apiKey = testCase.apiKey === undefined ? API_KEY : testCase.apiKey;
+    if (apiKey !== null) headers['X-API-Key'] = apiKey;
+
+    try {
+      const response = await fetch(`${BASE_URL}/hint`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(testCase.payload),
+      });
+
+      if (response.status === testCase.expectedStatus) {
+        console.log(`  ${GREEN}✓${NC} ${testCase.name}`);
+      } else {
+        failed++;
+        console.log(
+          `  ${RED}✗${NC} ${testCase.name} (expected ${testCase.expectedStatus}, received ${response.status})`,
+        );
+      }
+    } catch (err: unknown) {
+      failed++;
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`  ${RED}✗${NC} ${testCase.name} (${message})`);
+    }
+  }
+
+  console.log('');
+  return failed === 0;
+}
+
+function followsHintOutputContract(hint: string): boolean {
+  return (
+    sanitizeHtml(hint, {
+      allowedTags: ['code'],
+      allowedAttributes: {},
+      disallowedTagsMode: 'escape',
+    }) === hint
+  );
+}
+
 // --- Run a single test ---
 async function runTest(testFilePath: string): Promise<boolean> {
   const tc = loadTestCase(testFilePath);
@@ -122,6 +235,9 @@ async function runTest(testFilePath: string): Promise<boolean> {
   console.log(`  Mistake:        ${tc.mistake}`);
 
   let response: HintResponse;
+  let httpStatus: number;
+  let modelUsedHeader: string | null;
+  let modelAvailableHeader: string | null;
   try {
     const res = await fetch(`${BASE_URL}/hint`, {
       method: 'POST',
@@ -131,6 +247,9 @@ async function runTest(testFilePath: string): Promise<boolean> {
       },
       body: JSON.stringify(tc.request),
     });
+    httpStatus = res.status;
+    modelUsedHeader = res.headers.get('x-model-used');
+    modelAvailableHeader = res.headers.get('x-model-available');
     response = (await res.json()) as HintResponse;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -144,8 +263,8 @@ async function runTest(testFilePath: string): Promise<boolean> {
   const error = response.message;
   const status = response.status;
 
-  if (error) {
-    if (status === 429 || (typeof error === 'string' && error.includes('rate'))) {
+  if (error || httpStatus !== 200) {
+    if (httpStatus === 429 || status === 429 || error?.includes('rate')) {
       console.log(`  ${YELLOW}⚠️  Rate limited: ${error}${NC}`);
       console.log(`  ${BLUE}💡 Try increasing REQUEST_DELAY (current: ${REQUEST_DELAY}s)${NC}\n`);
     } else {
@@ -155,13 +274,33 @@ async function runTest(testFilePath: string): Promise<boolean> {
     return false;
   }
 
+  if (!response.hint || !response.model_used) {
+    console.log(`  ${RED}✗ Invalid success response shape${NC}\n`);
+    return false;
+  }
+
+  if (modelUsedHeader !== response.model_used) {
+    console.log(`  ${RED}✗ X-Model-Used does not match model_used${NC}\n`);
+    return false;
+  }
+
+  if (modelAvailableHeader !== 'true' && modelAvailableHeader !== 'false') {
+    console.log(`  ${RED}✗ X-Model-Available is missing or invalid${NC}\n`);
+    return false;
+  }
+
+  if (!followsHintOutputContract(response.hint)) {
+    console.log(`  ${RED}✗ Hint contains markup outside the limited-HTML contract${NC}\n`);
+    return false;
+  }
+
   console.log(`  ${GREEN}✓ Model Used:${NC}   ${model}`);
   console.log(`  ${GREEN}✓ Hint:${NC}        ${hint}\n`);
   return true;
 }
 
 // --- Run all tests ---
-async function runAllTests(): Promise<void> {
+async function runAllTests(): Promise<boolean> {
   const testFiles = getTestFiles();
   let passed = 0;
   let failed = 0;
@@ -186,6 +325,7 @@ async function runAllTests(): Promise<void> {
   console.log(`\n${BLUE}════════════════════════════════════════════════════════════════${NC}`);
   console.log(`  Results: ${GREEN}${passed} passed${NC}, ${RED}${failed} failed${NC}`);
   console.log(`${BLUE}════════════════════════════════════════════════════════════════${NC}`);
+  return failed === 0;
 }
 
 // --- Generate markdown report ---
@@ -224,7 +364,7 @@ async function generateReport(): Promise<void> {
     lines.push('');
     lines.push('**Student Code:**');
     lines.push('```');
-    lines.push(tc.request.userInput);
+    lines.push(tc.request.userInput ?? tc.request.seed ?? '');
     lines.push('```');
     lines.push('');
 
@@ -260,20 +400,23 @@ async function generateReport(): Promise<void> {
 }
 
 // --- CLI arg parsing ---
-function parseArgs(): { testFile: string | null; report: boolean } {
+function parseArgs(): { testFile: string | null; report: boolean; contractOnly: boolean } {
   const args = process.argv.slice(2);
   let testFile: string | null = null;
   let report = false;
+  let contractOnly = false;
 
   for (const arg of args) {
     if (arg === '--report') {
       report = true;
+    } else if (arg === '--contract-only') {
+      contractOnly = true;
     } else if (!testFile) {
       testFile = arg;
     }
   }
 
-  return { testFile, report };
+  return { testFile, report, contractOnly };
 }
 
 function resolveTestFile(input: string): string {
@@ -290,23 +433,29 @@ function resolveTestFile(input: string): string {
 
 // --- Main ---
 async function main(): Promise<void> {
-  const { testFile, report } = parseArgs();
+  const { testFile, report, contractOnly } = parseArgs();
 
   printHeader();
   await checkHealth();
+  const contractPassed = await runContractTests();
 
+  if (contractOnly) {
+    process.exit(contractPassed ? 0 : 1);
+  }
+
+  let liveTestsPassed: boolean;
   if (testFile) {
     const resolved = resolveTestFile(testFile);
-    await runTest(resolved);
+    liveTestsPassed = await runTest(resolved);
   } else {
-    await runAllTests();
+    liveTestsPassed = await runAllTests();
 
     if (report) {
       await generateReport();
     }
   }
 
-  process.exit(0);
+  process.exit(contractPassed && liveTestsPassed ? 0 : 1);
 }
 
 main();

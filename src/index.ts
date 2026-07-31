@@ -32,6 +32,7 @@ import {
 } from './config/env';
 import { loggerConfig, rootLogger } from './config/logger';
 import swaggerDefinition, { sharedSchemas } from './config/swagger';
+import { validationConfig } from './config/validation';
 import { createRedisClient } from './config/redis';
 import { resolvedModelConfig } from './lib/groqClient';
 import rateLimiterHook from './lib/rateLimiter';
@@ -41,6 +42,7 @@ import healthRoutes from './routes/health';
 import hintRoutes from './routes/hint';
 
 const app = Fastify({
+  ajv: validationConfig,
   logger: loggerConfig,
   pluginTimeout: 60_000, // allow Redis retryStrategy to exhaust its backoff
   requestIdHeader: 'x-request-id',

@@ -5,5 +5,5 @@ export interface ApiError extends Error {
 
 export interface HintResponse {
   hint: string;
-  model_used?: string;
+  model_used: string;
 }

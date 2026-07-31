@@ -36,6 +36,7 @@ export function toSafeError(err: unknown): Error & SafeErrorSnapshot {
 export class GroqApiError extends Error implements ApiError {
   status: number;
   isRetryable: boolean;
+  upstreamStatus?: number;
   originalError?: SafeErrorSnapshot;
 
   constructor(
@@ -43,11 +44,13 @@ export class GroqApiError extends Error implements ApiError {
     status: number,
     isRetryable: boolean,
     originalError?: SafeErrorSnapshot,
+    upstreamStatus?: number,
   ) {
     super(message);
     this.name = 'GroqApiError';
     this.status = status;
     this.isRetryable = isRetryable;
     this.originalError = originalError;
+    this.upstreamStatus = upstreamStatus;
   }
 }

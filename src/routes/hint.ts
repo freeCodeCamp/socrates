@@ -3,22 +3,24 @@ import { GroqApiError } from '../errors/groqApiError';
 import { InputValidationError } from '../errors/inputValidationError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
 import { generateFromGroq } from '../lib/groqClient';
-import sanitizeHintOutput from '../lib/hintSanitizer';
+import formatHintOutput from '../lib/formatHintOutput';
 import buildPrompt from '../lib/promptBuilder';
-import sanitizeRequest from '../lib/sanitizer';
+import normalizeHintRequest from '../lib/normalizeHintRequest';
 import { apiKeyAuthHook } from '../middleware/apiKeyAuth';
-import type { RawRequestBody } from '../types/sanitizer';
+import type { HintRequestBody } from '../types/hint';
 
 async function hintRoutes(fastify: FastifyInstance) {
-  fastify.post<{ Body: RawRequestBody }>(
+  fastify.addHook('onRequest', apiKeyAuthHook);
+
+  fastify.post<{ Body: HintRequestBody }>(
     '/hint',
     {
-      preHandler: [apiKeyAuthHook],
       schema: {
         description:
           'Generates an AI-powered pedagogical hint to help users with their coding challenges. Requires API key authentication via the X-API-Key header. Rate limited per user and globally.',
         tags: ['Hints'],
         security: [{ ApiKeyAuth: [] }],
+        body: { $ref: 'HintRequest#' },
         response: {
           200: {
             description: 'Hint generated successfully',
@@ -44,16 +46,18 @@ async function hintRoutes(fastify: FastifyInstance) {
             description: 'Internal server error',
             $ref: 'ErrorResponse#',
           },
+          502: {
+            description: 'Non-retryable model provider failure',
+            $ref: 'ErrorResponse#',
+          },
         },
       },
     },
-    async (request: FastifyRequest<{ Body: RawRequestBody }>, reply) => {
+    async (request: FastifyRequest<{ Body: HintRequestBody }>, reply) => {
       try {
-        // Sanitize and validate request
-        const sanitized = sanitizeRequest(request.body);
+        const normalized = normalizeHintRequest(request.body);
 
-        // Build prompt
-        const built = buildPrompt(sanitized);
+        const built = buildPrompt(normalized);
 
         // Call Groq
         const result = await generateFromGroq({
@@ -63,12 +67,15 @@ async function hintRoutes(fastify: FastifyInstance) {
           logger: request.log,
         });
 
-        // Sanitize the hint output
-        const sanitizedHint = sanitizeHintOutput(result.hint);
+        const formattedHint = formatHintOutput(result.hint);
 
-        // Always return JSON with a concatenated hint string
+        if (!formattedHint) {
+          throw new ModelUnavailableError('Model returned an empty hint after formatting');
+        }
+
         reply.header('X-Model-Used', result.model_used || 'unknown');
-        return reply.send({ hint: sanitizedHint, model_used: result.model_used });
+        reply.header('X-Model-Available', 'true');
+        return reply.send({ hint: formattedHint, model_used: result.model_used });
       } catch (err: unknown) {
         if (err instanceof InputValidationError) throw err;
         if (
@@ -81,9 +88,6 @@ async function hintRoutes(fastify: FastifyInstance) {
           reply.header('X-Model-Available', 'false');
           reply.header('X-Model-Used', 'fallback');
           return reply.send({ hint: fallbackHint, model_used: 'fallback' });
-        }
-        if (err instanceof Error) {
-          request.log.error({ err }, 'error in /hint');
         }
         throw err;
       }
