@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { formatHintOutput, MAX_HINT_CODE_POINTS } from '../formatHintOutput';
+import {
+  formatHintOutput,
+  MAX_HINT_CODE_POINTS,
+  MAX_HINT_RESPONSE_CHARS,
+} from '../formatHintOutput';
 
 describe('formatHintOutput', () => {
   it('preserves attribute-free code elements', () => {
@@ -92,5 +96,11 @@ describe('formatHintOutput', () => {
 
   it('escapes a bare ampersand', () => {
     expect(formatHintOutput('Tom & Jerry')).toBe('Tom &amp; Jerry');
+  });
+
+  it('stays within the documented response ceiling for maximal escaping', () => {
+    const worstCase = '&'.repeat(MAX_HINT_CODE_POINTS * 2);
+
+    expect(formatHintOutput(worstCase).length).toBeLessThanOrEqual(MAX_HINT_RESPONSE_CHARS);
   });
 });

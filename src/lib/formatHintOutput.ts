@@ -1,5 +1,11 @@
 export const MAX_HINT_CODE_POINTS = 1000;
 
+const ELLIPSIS_CHARS = 3;
+const MAX_CHARS_PER_ESCAPED_CODE_POINT = 5;
+
+export const MAX_HINT_RESPONSE_CHARS =
+  MAX_HINT_CODE_POINTS * MAX_CHARS_PER_ESCAPED_CODE_POINT + ELLIPSIS_CHARS;
+
 const BARE_AMPERSAND = /&(?!(?:[a-zA-Z][a-zA-Z0-9]{1,31}|#\d{1,7}|#[xX][0-9a-fA-F]{1,6});)/g;
 const ESCAPED_CODE_TAG = /&lt;(\/?)code\b((?:(?!&gt;).)*)&gt;/gi;
 
