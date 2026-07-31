@@ -95,6 +95,14 @@ describe('normalizeHintRequest', () => {
     expect(result.userInput).toBe('<main><output id="result"></output></main>');
   });
 
+  it('drops an unrecognised challengeType for direct callers', () => {
+    const result = normalizeHintRequest(
+      validBody({ challengeType: 'ruby' as HintRequestBody['challengeType'] }),
+    );
+
+    expect(result.challengeType).toBeUndefined();
+  });
+
   it('retains defensive guards for direct callers', () => {
     expect(() => normalizeHintRequest(validBody({ description: '' }))).toThrow(
       InputValidationError,
