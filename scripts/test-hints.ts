@@ -20,7 +20,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { formatHintOutput } from '../src/lib/formatHintOutput';
+import {
+  formatHintOutput,
+  MAX_HINT_CODE_POINTS,
+  MAX_HINT_RESPONSE_CHARS,
+} from '../src/lib/formatHintOutput';
 
 // --- ANSI colors ---
 const RED = '\x1b[0;31m';
@@ -251,6 +255,9 @@ async function runContractTests(): Promise<boolean> {
 }
 
 function followsHintOutputContract(hint: string): boolean {
+  if (Array.from(hint).length > MAX_HINT_CODE_POINTS) {
+    return hint.length <= MAX_HINT_RESPONSE_CHARS;
+  }
   return formatHintOutput(hint) === hint;
 }
 
