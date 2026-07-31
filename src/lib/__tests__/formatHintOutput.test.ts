@@ -98,6 +98,32 @@ describe('formatHintOutput', () => {
     expect(formatHintOutput('Tom & Jerry')).toBe('Tom &amp; Jerry');
   });
 
+  it('does not promote entity-escaped code tags into live elements', () => {
+    expect(formatHintOutput('Write &lt;code&gt;hello&lt;/code&gt; to show inline code.')).toBe(
+      'Write &lt;code&gt;hello&lt;/code&gt; to show inline code.',
+    );
+  });
+
+  it('does not swallow prose after an entity-escaped code tag', () => {
+    expect(formatHintOutput('Type &lt;code&gt; first.')).toBe('Type &lt;code&gt; first.');
+  });
+
+  it('keeps an entity-escaped code tag as text inside a real code element', () => {
+    expect(formatHintOutput('Use a <code>&lt;code&gt;</code> element.')).toBe(
+      'Use a <code>&lt;code&gt;</code> element.',
+    );
+  });
+
+  it('does not treat uppercase entity forms as code tags', () => {
+    expect(formatHintOutput('Write &Lt;code&Gt; here.')).toBe('Write &Lt;code&Gt; here.');
+  });
+
+  it('does not treat similarly named elements as code', () => {
+    expect(formatHintOutput('Use <code-block> and <codeX> here.')).toBe(
+      'Use &lt;code-block&gt; and &lt;codeX&gt; here.',
+    );
+  });
+
   it('stays within the documented response ceiling for maximal escaping', () => {
     const worstCase = '&'.repeat(MAX_HINT_CODE_POINTS * 2);
 

@@ -7,7 +7,7 @@ export const MAX_HINT_RESPONSE_CHARS =
   MAX_HINT_CODE_POINTS * MAX_CHARS_PER_ESCAPED_CODE_POINT + ELLIPSIS_CHARS;
 
 const BARE_AMPERSAND = /&(?!(?:[a-zA-Z][a-zA-Z0-9]{1,31}|#\d{1,7}|#[xX][0-9a-fA-F]{1,6});)/g;
-const ESCAPED_CODE_TAG = /&lt;(\/?)code\b((?:(?!&gt;).)*)&gt;/gi;
+const RAW_CODE_TAG = /<(\/?)code(?=[\s/>])[^>]*>/gi;
 
 function truncateCodePoints(value: string): string {
   const codePoints = Array.from(value);
@@ -19,20 +19,33 @@ function escapeMarkup(value: string): string {
   return value.replace(BARE_AMPERSAND, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function restoreAttributeFreeCodeElements(escaped: string): string {
+function renderAttributeFreeCodeElements(value: string): string {
+  let rendered = '';
+  let cursor = 0;
   let unclosedCodeElements = 0;
 
-  const restored = escaped.replace(ESCAPED_CODE_TAG, (match: string, closingSlash: string) => {
-    if (closingSlash) {
-      if (unclosedCodeElements === 0) return match;
-      unclosedCodeElements -= 1;
-      return '</code>';
-    }
-    unclosedCodeElements += 1;
-    return '<code>';
-  });
+  for (const match of value.matchAll(RAW_CODE_TAG)) {
+    const index = match.index ?? 0;
+    rendered += escapeMarkup(value.slice(cursor, index));
 
-  return restored + '</code>'.repeat(unclosedCodeElements);
+    if (match[1]) {
+      if (unclosedCodeElements > 0) {
+        unclosedCodeElements -= 1;
+        rendered += '</code>';
+      } else {
+        rendered += escapeMarkup(match[0]);
+      }
+    } else {
+      unclosedCodeElements += 1;
+      rendered += '<code>';
+    }
+
+    cursor = index + match[0].length;
+  }
+
+  rendered += escapeMarkup(value.slice(cursor));
+
+  return rendered + '</code>'.repeat(unclosedCodeElements);
 }
 
 export function formatHintOutput(hint: string): string {
@@ -40,9 +53,8 @@ export function formatHintOutput(hint: string): string {
   if (!normalized) return '';
 
   const truncated = truncateCodePoints(normalized);
-  const escaped = escapeMarkup(truncated);
 
-  return restoreAttributeFreeCodeElements(escaped).trim().replace(/\s+/gu, ' ');
+  return renderAttributeFreeCodeElements(truncated).trim().replace(/\s+/gu, ' ');
 }
 
 export default formatHintOutput;
