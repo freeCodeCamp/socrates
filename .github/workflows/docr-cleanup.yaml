@@ -2,7 +2,7 @@ name: DOCR - Cleanup Container Images
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 0 * * 6" # 00:30 UTC on Saturdays
+    - cron: '30 0 * * 6' # 00:30 UTC on Saturdays
 
 jobs:
   remove:
@@ -29,6 +29,6 @@ jobs:
       - name: Delete Images
         uses: raisedadead/action-docr-cleanup@1c7d87369bccfdf5da03a9ae3b00eacc3f2a9b51 # v1.1.1
         with:
-          repository_name: "${{ matrix.variants }}/${{ matrix.repos }}"
-          days: "7"
-          keep_last: "3"
+          repository_name: '${{ matrix.variants }}/${{ matrix.repos }}'
+          days: '7'
+          keep_last: '3'
