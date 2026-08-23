@@ -31,11 +31,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm run check
-
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Test
-        run: pnpm run test
+      # Single source of truth: `pnpm run verify` is the same command contributors
+      # run locally, so CI and local checks cannot drift apart.
+      - name: Verify
+        run: pnpm run verify

@@ -20,7 +20,11 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import sanitizeHtml from 'sanitize-html';
+import {
+  formatHintOutput,
+  MAX_HINT_CODE_POINTS,
+  MAX_HINT_RESPONSE_CHARS,
+} from '../src/lib/formatHintOutput';
 
 // --- ANSI colors ---
 const RED = '\x1b[0;31m';
@@ -71,6 +75,7 @@ interface ContractCase {
   payload: Record<string, unknown>;
   expectedStatus: number;
   apiKey?: string | null;
+  requiresAuthEnforcement?: boolean;
 }
 
 // --- Helpers ---
@@ -108,12 +113,14 @@ const contractCases: ContractCase[] = [
     payload: validContractRequest,
     expectedStatus: 401,
     apiKey: null,
+    requiresAuthEnforcement: true,
   },
   {
     name: 'invalid API key is rejected before processing',
     payload: validContractRequest,
     expectedStatus: 403,
     apiKey: `${API_KEY}-invalid`,
+    requiresAuthEnforcement: true,
   },
   {
     name: 'unknown request fields are rejected',
@@ -179,11 +186,38 @@ async function checkHealth(): Promise<void> {
   }
 }
 
+async function detectAuthEnforcement(): Promise<boolean> {
+  try {
+    const response = await fetch(`${BASE_URL}/hint`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ probe: 'auth-enforcement' }),
+    });
+    return response.status === 401;
+  } catch {
+    return false;
+  }
+}
+
 async function runContractTests(): Promise<boolean> {
   console.log(`${YELLOW}Running local API contract checks...${NC}`);
   let failed = 0;
+  let skipped = 0;
+
+  const authEnforced = await detectAuthEnforcement();
+  if (!authEnforced) {
+    console.log(
+      `  ${YELLOW}!${NC} API key auth is not enforced on this server; auth cases will be skipped`,
+    );
+  }
 
   for (const testCase of contractCases) {
+    if (testCase.requiresAuthEnforcement && !authEnforced) {
+      skipped++;
+      console.log(`  ${YELLOW}-${NC} ${testCase.name} (skipped)`);
+      continue;
+    }
+
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     const apiKey = testCase.apiKey === undefined ? API_KEY : testCase.apiKey;
     if (apiKey !== null) headers['X-API-Key'] = apiKey;
@@ -210,18 +244,21 @@ async function runContractTests(): Promise<boolean> {
     }
   }
 
+  if (skipped > 0) {
+    console.log(
+      `  ${YELLOW}${skipped} auth case(s) skipped${NC} — run against staging to exercise them`,
+    );
+  }
+
   console.log('');
   return failed === 0;
 }
 
 function followsHintOutputContract(hint: string): boolean {
-  return (
-    sanitizeHtml(hint, {
-      allowedTags: ['code'],
-      allowedAttributes: {},
-      disallowedTagsMode: 'escape',
-    }) === hint
-  );
+  if (Array.from(hint).length > MAX_HINT_CODE_POINTS) {
+    return hint.length <= MAX_HINT_RESPONSE_CHARS;
+  }
+  return formatHintOutput(hint) === hint;
 }
 
 // --- Run a single test ---

@@ -13,9 +13,11 @@ Socrates is freeCodeCamp's hint API. Takes a camper's code, challenge descriptio
 
 ### `/hint` request flow
 
-`rateLimiterHook` (plugin `preHandler`, scoped to `/hint` via an encapsulated plugin) -> `apiKeyAuthHook` (route `preHandler`) -> `sanitizeRequest` -> `buildPrompt` -> `generateFromGroq` -> `sanitizeHintOutput` -> response.
+`apiKeyAuthHook` (plugin `onRequest`) -> JSON Schema validation -> `rateLimiterHook` (plugin `preHandler`) -> `normalizeHintRequest` -> `buildPrompt` -> `generateFromGroq` -> `formatHintOutput` -> response.
 
-Non-obvious: Fastify runs a plugin-level `preHandler` before a route's own `preHandler`, so the rate limiter fires **before** API-key auth — unauthenticated requests still consume the bucket. (`rateLimiterHook` = `instance.addHook` in `src/index.ts`; `apiKeyAuthHook` = route `preHandler:[…]` in `src/routes/hint.ts`.)
+**Non-obvious: rejected requests consume no rate-limit token.** Fastify's phase order is `onRequest` -> `preValidation` -> `validation` -> `preHandler`, and phase beats encapsulation depth — so a child-scope `onRequest` hook runs before a parent-scope `preHandler` one. `apiKeyAuthHook` is `fastify.addHook('onRequest', …)` in `src/routes/hint.ts`; `rateLimiterHook` is `instance.addHook('preHandler', …)` in `src/index.ts`. Measured: 401, 403 and schema-400 responses all return with the limiter never invoked; only a fully valid request reaches it.
+
+The trade is deliberate in both directions. Before this ordering the limiter keyed on `body.userId` _before_ auth ran, so an unauthenticated caller could drain a victim's bucket by sending the victim's `userId`. That is now impossible — but API-key guessing and malformed-body floods are no longer metered at the app layer.
 
 ## Observability
 
@@ -48,7 +50,9 @@ Operator walkthrough — scripts, release steps, source maps, required secrets �
 ## Gotchas
 
 - **`pnpm run build` must copy the Lua script** (`cp -r src/lib/lua dist/lib/lua`). `src/lib/rateLimiter.ts` reads `token_bucket.lua` from disk at startup; dropping the copy silently breaks rate limiting in production.
-- **API key auth skipped outside production/staging.** `apiKeyAuthHook` short-circuits for any other `NODE_ENV`.
+- **Two tsconfigs on purpose.** `tsconfig.json` is the _build_ config — `rootDir: src`, emits to `dist/`. `tsconfig.check.json` is the _typecheck_ config — adds `scripts/**/*` with `noEmit`, so the CLI scripts are type-checked without landing in the shipped bundle. `src/**/__tests__` stays excluded from both: vitest's `axios` mocking and dynamic `import()` calls do not satisfy `moduleResolution: nodenext`, and forcing them to would mean rewriting the mocks, not fixing a bug. CI runs `pnpm run verify` — the same command you run locally, so the two cannot drift.
+- **API key auth skipped outside production/staging.** `apiKeyAuthHook` short-circuits for any other `NODE_ENV`. Consequence: the 401/403 cases in `scripts/test-hints.ts` cannot pass locally, so the runner probes the server once and skips them unless auth is actually enforced. Run it against staging to exercise them.
+- **`formatHintOutput` escapes; it must never parse.** It escapes `<`, `>` and bare `&`, then re-activates only `<code>`. An HTML parser (it used `sanitize-html`) drops whatever it does not model — attributes, comments, doctypes — _before_ escaping can preserve them as text, and its raw-text content model lets `<code><textarea></code>` swallow the closing tag. Three defects, one cause. The `&` escape skips well-formed entities, so `HTML_PATTERNS` hints that legitimately emit `&lt;!--` are not double-encoded. `MAX_HINT_RESPONSE_CHARS` is derived (5 chars max per escaped code point), not invented — it is the true ceiling, and Fastify does **not** enforce response `maxLength`, so the schema value is documentation.
 - **Per-challenge model override.** `groqClient.ts` reads `GROQ_MODEL_<TYPE>` env vars via dynamic `process.env` lookup (not in `env.ts`), falling back to `GROQ_MODEL`.
 - **Groq has an in-memory circuit breaker + fallback hint.** After `MODEL_CB_FAILURES` failures the breaker opens for `MODEL_CB_COOLDOWN_MS`; `/hint` returns a canned fallback with `model_used: "fallback"`. Intentional — don't "fix" it by throwing.
 - **Transient Groq failures MUST NOT escape as unhandled errors** (root cause of SOCRATES-API-3/-4). `makeGroqApiCall` throws `ModelUnavailableError` after exhausting retries on a _retryable_ error (timeout / 5xx / 429 / network); `/hint`'s catch maps `ModelUnavailableError` **and** retryable `GroqApiError` → the graceful fallback. Only _non-retryable_ Groq errors (auth, 4xx) surface to the error handler → Sentry `handled:no` (a real bug you want to see). Do NOT revert the exhausted-retry path to `throw finalError` — that reintroduces the unhandled-500 class. The exhausted-retry summary logs at `warn` (stdout only), never `error` (which ships to Sentry Logs).
