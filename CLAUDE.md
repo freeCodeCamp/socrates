@@ -13,9 +13,9 @@ Socrates is freeCodeCamp's hint API. Takes a camper's code, challenge descriptio
 
 ### `/hint` request flow
 
-`rateLimiterHook` (plugin `preHandler`, scoped to `/hint` via an encapsulated plugin) -> `apiKeyAuthHook` (route `preHandler`) -> `sanitizeRequest` -> `buildPrompt` -> `generateFromGroq` -> `sanitizeHintOutput` -> response.
+`apiKeyAuthHook` (route `onRequest`) -> `rateLimiterHook` (plugin `preHandler`) -> `normalizeHintRequest` -> `buildPrompt` -> `generateFromGroq` -> `formatHintOutput` -> response.
 
-Non-obvious: Fastify runs a plugin-level `preHandler` before a route's own `preHandler`, so the rate limiter fires **before** API-key auth — unauthenticated requests still consume the bucket. (`rateLimiterHook` = `instance.addHook` in `src/index.ts`; `apiKeyAuthHook` = route `preHandler:[…]` in `src/routes/hint.ts`.)
+Non-obvious: `apiKeyAuthHook` is an `onRequest` hook registered inside `hintRoutes`; `rateLimiterHook` is a `preHandler` hook on the parent plugin that encapsulates it. Fastify runs every `onRequest` hook before any `preHandler`, so auth fires **before** the rate limiter — an unauthenticated request gets 401/403 and does NOT consume the bucket. Encapsulation keeps both hooks scoped to `/hint`. (`rateLimiterHook` = `instance.addHook` in `src/index.ts:141`; `apiKeyAuthHook` = `fastify.addHook('onRequest', …)` in `src/routes/hint.ts:13`.)
 
 ## Observability
 
