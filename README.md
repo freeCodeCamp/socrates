@@ -36,8 +36,7 @@ Request body:
 }
 ```
 
-Passing test entries may omit `failed`. At least one entry must explicitly include
-`"failed": true`.
+Passing test entries may omit `failed`. At least one entry must explicitly include `"failed": true`.
 
 Response:
 
@@ -48,8 +47,7 @@ Response:
 }
 ```
 
-The `hint` value may contain limited HTML. Only attribute-free `<code>` elements are returned;
-all other model-generated tags are safely encoded as text.
+The `hint` value may contain limited HTML. Only attribute-free `<code>` elements are returned; all other model-generated tags are safely encoded as text.
 
 ### `GET /health`
 
@@ -77,4 +75,4 @@ Full operator guide — scripts, environment variables, observability, release f
 
 ## License
 
-MIT
+BSD-3-Clause
