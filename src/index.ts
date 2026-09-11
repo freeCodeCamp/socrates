@@ -6,7 +6,7 @@ import helmet from '@fastify/helmet';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
 import * as Sentry from '@sentry/node';
-import Fastify from 'fastify';
+import Fastify, { LogController } from 'fastify';
 import fastifyRedis from '@fastify/redis';
 import {
   BUILD_VERSION,
@@ -48,11 +48,13 @@ const app = Fastify({
   pluginTimeout: 60_000, // allow Redis retryStrategy to exhaust its backoff
   requestIdHeader: 'x-request-id',
   genReqId: () => randomUUID(),
-  disableRequestLogging: (req) =>
-    req.url === '/health' ||
-    req.url === '/health/version' ||
-    req.url.startsWith('/api-docs') ||
-    req.url === '/',
+  logController: new LogController({
+    disableRequestLogging: (req) =>
+      req.url === '/health' ||
+      req.url === '/health/version' ||
+      req.url.startsWith('/api-docs') ||
+      req.url === '/',
+  }),
 });
 
 // Must be called before any plugin registration so Sentry intercepts the full error lifecycle.
