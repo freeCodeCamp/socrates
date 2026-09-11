@@ -1,7 +1,7 @@
 import path from 'node:path';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
 
 export const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
 export const NODE_ENV = process.env.NODE_ENV || 'development';
