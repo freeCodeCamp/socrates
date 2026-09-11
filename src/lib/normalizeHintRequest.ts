@@ -1,14 +1,31 @@
 import { InputValidationError } from '../errors/inputValidationError';
-import type { HintRequestBody, NormalizedHintRequest } from '../types/hint';
+import {
+  CHALLENGE_TYPES,
+  type ChallengeType,
+  type HintRequestBody,
+  type NormalizedHintRequest,
+} from '../types/hint';
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function isValidChallengeType(value: unknown): value is ChallengeType {
+  return typeof value === 'string' && CHALLENGE_TYPES.includes(value as ChallengeType);
+}
+
 const PROMPT_FRAME_TAGS = /<\s*\/?\s*(?:challenge_description|student_code|failing_test)\s*>/gi;
 
 function stripPromptFrameTags(value: string): string {
-  return value.replace(PROMPT_FRAME_TAGS, '');
+  let previous: string;
+  let stripped = value;
+
+  do {
+    previous = stripped;
+    stripped = stripped.replace(PROMPT_FRAME_TAGS, '');
+  } while (stripped !== previous);
+
+  return stripped;
 }
 
 /**
@@ -47,7 +64,7 @@ export function normalizeHintRequest(raw: HintRequestBody): NormalizedHintReques
 
   return {
     userId: userId.trim(),
-    challengeType,
+    challengeType: isValidChallengeType(challengeType) ? challengeType : undefined,
     description: stripPromptFrameTags(description.trim()),
     userInput: stripPromptFrameTags(effectiveUserInput.trim()),
     seed: stripPromptFrameTags(typeof seed === 'string' ? seed.trim() : ''),

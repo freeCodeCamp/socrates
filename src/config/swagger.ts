@@ -1,4 +1,5 @@
 import { SERVER_URL } from './env';
+import { MAX_HINT_RESPONSE_CHARS } from '../lib/formatHintOutput';
 
 const swaggerDefinition: Record<string, unknown> = {
   openapi: '3.0.0',
@@ -160,8 +161,9 @@ export const sharedSchemas = [
     properties: {
       hint: {
         type: 'string',
+        maxLength: MAX_HINT_RESPONSE_CHARS,
         description:
-          'The AI-generated hint. Only <code> elements without attributes are active HTML; all other tags are encoded as text.',
+          'The AI-generated hint. Only <code> elements without attributes are active HTML. All other tags are encoded as text. Insert this value into an element. Do not insert it into an HTML attribute, because quotes are not encoded.',
         example: 'Check whether your <code>sum</code> function returns a value.',
       },
       model_used: {
