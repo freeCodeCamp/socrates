@@ -16,5 +16,12 @@
       "matchStrings": ["npm install -g (?<depName>pnpm)@(?<currentValue>\\S+)"],
       "datasourceTemplate": "npm"
     }
+  ],
+  "packageRules": [
+    {
+      "description": "Keep the Node version in .node-version and the Dockerfile in one PR.",
+      "matchPackageNames": ["node"],
+      "groupName": "node"
+    }
   ]
 }

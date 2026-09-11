@@ -1,12 +1,12 @@
 # Stage 1 — Install dependencies
-FROM node:24-bookworm-slim AS deps
+FROM node:24.21.0-bookworm-slim AS deps
 RUN npm install -g pnpm@10.34.5
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Stage 2 — Build TypeScript and prune dev dependencies
-FROM node:24-bookworm-slim AS build
+FROM node:24.21.0-bookworm-slim AS build
 RUN npm install -g pnpm@10.34.5
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -21,7 +21,7 @@ RUN find dist -name '*.map' -delete
 RUN pnpm prune --prod
 
 # Stage 3 — Production image
-FROM node:24-bookworm-slim AS production
+FROM node:24.21.0-bookworm-slim AS production
 RUN apt-get update \
   && apt-get install -y --no-install-recommends tini wget \
   && rm -rf /var/lib/apt/lists/*
