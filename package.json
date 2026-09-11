@@ -27,7 +27,7 @@
     "@fastify/helmet": "^13.1.1",
     "@fastify/redis": "^7.2.0",
     "@fastify/swagger": "^9.8.1",
-    "@fastify/swagger-ui": "^5.2.6",
+    "@fastify/swagger-ui": "^6.1.1",
     "@sentry/node": "^10.74.0",
     "axios": "^1.20.0",
     "dotenv": "^17.4.2",
