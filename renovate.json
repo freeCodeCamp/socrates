@@ -1,4 +1,20 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>freecodecamp/renovate-config"]
+  "extends": ["github>freecodecamp/renovate-config"],
+  "customManagers": [
+    {
+      "description": "Track the sentry-cli version installed by a workflow run step.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": ["npm install -g (?<depName>@sentry/cli)@(?<currentValue>\\S+)"],
+      "datasourceTemplate": "npm"
+    },
+    {
+      "description": "Track the pnpm version corepack activates in the Dockerfile.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^Dockerfile$/"],
+      "matchStrings": ["corepack prepare (?<depName>pnpm)@(?<currentValue>\\S+) --activate"],
+      "datasourceTemplate": "npm"
+    }
+  ]
 }

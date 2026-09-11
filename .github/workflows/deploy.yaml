@@ -172,7 +172,7 @@ jobs:
 
       - name: Install sentry-cli
         if: env.SENTRY_AUTH_TOKEN != ''
-        run: npm install -g @sentry/cli@3.4.3
+        run: npm install -g @sentry/cli@3.7.0
 
       - name: Sentry — deploy marker
         if: env.SENTRY_AUTH_TOKEN != ''
