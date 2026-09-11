@@ -160,25 +160,26 @@ app.setNotFoundHandler(async (_request, reply) => {
   return reply.status(404).send({ message: 'Not Found' });
 });
 
-// Ensure SIGINT/SIGTERM trigger the onClose hooks even when running under
-// nodemon or ts-node, which may otherwise kill the process before Fastify
-// sees the signal.
+// V4: flush Sentry on every exit path. V6: exit even when the flush rejects.
+async function flushAndExit(code: number, context: string): Promise<void> {
+  try {
+    await Sentry.close(2000);
+  } catch (err) {
+    rootLogger.error({ err }, `Sentry.close failed during ${context}`);
+  } finally {
+    process.exit(code);
+  }
+}
+
 ['SIGINT', 'SIGTERM'].forEach((signal) => {
   process.on(signal, async () => {
     rootLogger.info({ signal }, 'shutting down');
     try {
       await app.close();
-      // Flush queued Sentry events before exit. Safe no-op when SENTRY_DSN
-      // is unset (Sentry.init() was skipped). 2s timeout matches the SDK default.
-      await Sentry.close(2000);
     } catch (err) {
       rootLogger.error({ err }, 'shutdown error');
-    } finally {
-      // V6: process MUST exit even if the awaits above reject. A hung
-      // shutdown is worse than a noisy one — the orchestrator will SIGKILL
-      // us anyway after the grace period.
-      process.exit(0);
     }
+    await flushAndExit(0, 'shutdown');
   });
 });
 
@@ -190,17 +191,7 @@ process.on('unhandledRejection', (reason) => {
 });
 process.on('uncaughtException', async (err) => {
   rootLogger.fatal({ err }, 'uncaughtException');
-  try {
-    // Best-effort flush. 2s ceiling — if Sentry can't drain in that window,
-    // the fatal log line is already in stdout for the local aggregator.
-    await Sentry.close(2000);
-  } catch (closeErr) {
-    rootLogger.error({ err: closeErr }, 'Sentry.close failed during uncaughtException');
-  } finally {
-    // V6: never skip exit(1). The process is in an unknown state — staying
-    // alive risks serving requests against corrupted in-memory state.
-    process.exit(1);
-  }
+  await flushAndExit(1, 'uncaughtException');
 });
 
 const start = async () => {
@@ -212,7 +203,7 @@ const start = async () => {
     rootLogger.info({ port: PORT, nodeEnv: NODE_ENV }, 'server listening');
   } catch (err) {
     rootLogger.error({ err }, 'server failed to start');
-    process.exit(1);
+    await flushAndExit(1, 'startup');
   }
 };
 
