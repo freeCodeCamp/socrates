@@ -10,10 +10,10 @@
       "datasourceTemplate": "npm"
     },
     {
-      "description": "Track the pnpm version corepack activates in the Dockerfile.",
+      "description": "Track the pnpm version installed in the Dockerfile.",
       "customType": "regex",
       "managerFilePatterns": ["/^Dockerfile$/"],
-      "matchStrings": ["corepack prepare (?<depName>pnpm)@(?<currentValue>\\S+) --activate"],
+      "matchStrings": ["npm install -g (?<depName>pnpm)@(?<currentValue>\\S+)"],
       "datasourceTemplate": "npm"
     }
   ]
