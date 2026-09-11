@@ -1,4 +1,4 @@
-#!/usr/bin/env npx ts-node
+#!/usr/bin/env tsx
 
 // test-hints.ts
 // Runs hint API tests using JSON test case files

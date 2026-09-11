@@ -2,7 +2,7 @@
 FROM node:24.21.0-bookworm-slim AS deps
 RUN npm install -g pnpm@12.3.2
 WORKDIR /app
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Stage 2 — Build TypeScript and prune dev dependencies
@@ -10,7 +10,7 @@ FROM node:24.21.0-bookworm-slim AS build
 RUN npm install -g pnpm@12.3.2
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json pnpm-lock.yaml tsconfig.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY src/ ./src/
 RUN pnpm run build
 # Strip .map files (source maps + declaration maps) before the production
