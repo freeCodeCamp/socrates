@@ -13,7 +13,7 @@
       "description": "Track the pnpm version installed in the Dockerfile.",
       "customType": "regex",
       "managerFilePatterns": ["/^Dockerfile$/"],
-      "matchStrings": ["npm install -g (?<depName>pnpm)@(?<currentValue>\\S+)"],
+      "matchStrings": ["install-verified\\.mjs (?<depName>pnpm)@(?<currentValue>\\S+)"],
       "datasourceTemplate": "npm"
     }
   ],
@@ -22,6 +22,11 @@
       "description": "Keep the Node version in .node-version and the Dockerfile in one PR.",
       "matchPackageNames": ["node"],
       "groupName": "node"
+    },
+    {
+      "description": "Keep the pnpm version in package.json and the Dockerfile in one PR.",
+      "matchPackageNames": ["pnpm"],
+      "groupName": "pnpm"
     }
   ]
 }
