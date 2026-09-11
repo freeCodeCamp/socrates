@@ -1,13 +1,13 @@
 # Stage 1 — Install dependencies
 FROM node:24-bookworm-slim AS deps
-RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
+RUN npm install -g pnpm@10.34.5
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Stage 2 — Build TypeScript and prune dev dependencies
 FROM node:24-bookworm-slim AS build
-RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
+RUN npm install -g pnpm@10.34.5
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml tsconfig.json ./
