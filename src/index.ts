@@ -31,7 +31,7 @@ import {
   SENTRY_TRACES_SAMPLE_RATE,
 } from './config/env';
 import { loggerConfig, rootLogger } from './config/logger';
-import swaggerDefinition, { sharedSchemas } from './config/swagger';
+import swaggerDefinition, { refResolver, sharedSchemas } from './config/swagger';
 import { validationConfig } from './config/validation';
 import { createRedisClient } from './config/redis';
 import { resolvedModelConfig } from './lib/groqClient';
@@ -40,6 +40,7 @@ import { errorHandler } from './middleware/errorHandler';
 import debugRoutes from './routes/debug';
 import healthRoutes from './routes/health';
 import hintRoutes from './routes/hint';
+import openapiRoutes from './routes/openapi';
 
 const app = Fastify({
   ajv: validationConfig,
@@ -110,9 +111,10 @@ for (const schema of sharedSchemas) {
   app.addSchema(schema);
 }
 
-// Swagger docs - development only
+app.register(swagger, { openapi: swaggerDefinition, refResolver });
+
+// Swagger UI - development only
 if (!isProd) {
-  app.register(swagger, { openapi: swaggerDefinition });
   app.register(swaggerUi, {
     routePrefix: '/api-docs',
     uiConfig: {
@@ -135,6 +137,7 @@ app.register(fastifyRedis, { client: redisClient, closeClient: true });
 // Routes
 app.register(healthRoutes);
 app.register(debugRoutes);
+app.register(openapiRoutes);
 
 // Rate-limit the /hint endpoint per user and globally
 app.register(async (instance) => {

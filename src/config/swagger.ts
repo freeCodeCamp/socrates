@@ -11,11 +11,7 @@ const swaggerDefinition: Record<string, unknown> = {
       name: 'MIT',
     },
   },
-  servers: [
-    {
-      url: SERVER_URL,
-    },
-  ],
+  ...(SERVER_URL ? { servers: [{ url: SERVER_URL }] } : {}),
   components: {
     securitySchemes: {
       ApiKeyAuth: {
@@ -62,6 +58,17 @@ const swaggerDefinition: Record<string, unknown> = {
         },
       },
     },
+  },
+};
+
+export const refResolver = {
+  buildLocalReference(
+    json: { $id?: string },
+    _baseUri: unknown,
+    _fragment: unknown,
+    i: number,
+  ): string {
+    return json.$id ?? `def-${i}`;
   },
 };
 

@@ -10,6 +10,6 @@ export function errorHandler(err: ApiError, req: FastifyRequest, reply: FastifyR
   // already sanitizes inside its own catch, but if any future caller
   // throws a raw AxiosError up to Fastify, this is the final sink before
   // the bearer would otherwise reach stdout + Sentry.
-  req.log.error({ err: toSafeError(err) }, 'request failed');
+  req.log[status >= 500 ? 'error' : 'warn']({ err: toSafeError(err) }, 'request failed');
   reply.status(status).send({ message: err.message || 'Internal Server Error', status });
 }
