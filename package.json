@@ -6,7 +6,7 @@
   "engines": {
     "node": ">=24"
   },
-  "packageManager": "pnpm@10.34.5",
+  "packageManager": "pnpm@12.3.2",
   "scripts": {
     "dev": "BUILD_VERSION=dev-$(git rev-parse --short HEAD 2>/dev/null || echo unknown) nodemon",
     "build": "tsc -p . && mkdir -p dist/lib/lua && cp -r src/lib/lua/. dist/lib/lua/",
