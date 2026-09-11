@@ -24,7 +24,7 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:7.4-alpine
+    image: redis:8.10-alpine
     command: ['redis-server', '--appendonly', 'yes']
     ports:
       - '6379:6379'
