@@ -57,6 +57,10 @@ interface TestCase {
   challenge: string;
   mistake: string;
   request: TestRequest;
+  hintChecks?: {
+    mustMatch: string[];
+    mustNotMatch: string[];
+  };
 }
 
 interface HintResponse {
@@ -292,6 +296,27 @@ async function runTest(testFilePath: string): Promise<boolean> {
   if (!followsHintOutputContract(response.hint)) {
     console.log(`  ${RED}✗ Hint contains markup outside the limited-HTML contract${NC}\n`);
     return false;
+  }
+
+  if (tc.hintChecks) {
+    if (modelAvailableHeader !== 'true' || model === 'fallback') {
+      console.log(`  ${RED}✗ A real model response is required for hint checks${NC}\n`);
+      return false;
+    }
+    const text = response.hint.replace(/<\/?code>/g, '');
+    const missing = tc.hintChecks.mustMatch.filter(
+      (pattern) => !new RegExp(pattern, 'iu').test(text),
+    );
+    const forbidden = tc.hintChecks.mustNotMatch.filter((pattern) =>
+      new RegExp(pattern, 'iu').test(text),
+    );
+    if (missing.length || forbidden.length) {
+      console.log(`  ${RED}✗ Hint failed content checks${NC}`);
+      console.log(`  Missing patterns: ${JSON.stringify(missing)}`);
+      console.log(`  Forbidden patterns: ${JSON.stringify(forbidden)}`);
+      console.log(`  Hint: ${hint}\n`);
+      return false;
+    }
   }
 
   console.log(`  ${GREEN}✓ Model Used:${NC}   ${model}`);

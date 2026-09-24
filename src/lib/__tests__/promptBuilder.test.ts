@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PromptSizeError } from '../../errors/promptSizeError';
 import type { NormalizedHintRequest } from '../../types/hint';
 import { buildPrompt } from '../promptBuilder';
+import { normalizeHintRequest } from '../normalizeHintRequest';
 
 function baseSanitized(overrides: Partial<NormalizedHintRequest> = {}): NormalizedHintRequest {
   return {
@@ -85,5 +86,42 @@ describe('buildPrompt', () => {
   it('throws PromptSizeError when combined prompt exceeds MAX_PROMPT_CHARS', () => {
     const huge = 'x'.repeat(100001);
     expect(() => buildPrompt(baseSanitized({ description: huge }))).toThrow(PromptSizeError);
+  });
+
+  it.each([undefined, 'html'] as const)(
+    'includes computed counts from the effective student code for challenge type %s',
+    (challengeType) => {
+      const code = '<p><span aria-hidden="true">⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐</span></p>';
+      const normalized = normalizeHintRequest({
+        userId: 'movie-rating-regression',
+        challengeType,
+        seed: code,
+        description: 'Use ten stars, for example ⭐⭐⭐⭐⭐⭐⭐⭐⭐☆, followed by a rating.',
+        hints: [{ text: 'Ten stars and a numeric rating are required.', failed: true }],
+      });
+      const result = buildPrompt(normalized);
+      const observations = JSON.parse(
+        result.userPrompt
+          .split('<source_symbol_counts>\n')[1]
+          .split('\n</source_symbol_counts>')[0],
+      );
+      expect(result.userPrompt).toContain(`<student_code>\n${code}\n</student_code>`);
+      expect(observations).toEqual([
+        { start: 28, end: 38, preview: '⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐', count: 10 },
+      ]);
+      expect(result.length).toBe(result.fullPrompt.length);
+    },
+  );
+
+  it('counts userInput rather than an outdated seed', () => {
+    const normalized = normalizeHintRequest({
+      userId: 'movie-rating-regression',
+      description: 'Use ten stars and a rating.',
+      seed: '<span>⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐</span>',
+      userInput: '<span>⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐</span>',
+      hints: [{ text: 'Ten stars and a numeric rating are required.', failed: true }],
+    });
+    expect(buildPrompt(normalized).userPrompt).toContain('"count":10');
+    expect(buildPrompt(normalized).userPrompt).not.toContain('"count":12');
   });
 });

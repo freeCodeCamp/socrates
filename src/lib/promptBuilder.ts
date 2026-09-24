@@ -1,6 +1,7 @@
 import { getSystemPrompt, MAX_PROMPT_CHARS, USER_PROMPT_TEMPLATE } from '../config/prompts';
 import { PromptSizeError } from '../errors/promptSizeError';
 import type { ChallengeType, NormalizedHintRequest } from '../types/hint';
+import { countSymbolSequences } from './countSymbolSequences';
 
 function interpolate(template: string, values: Record<string, string | undefined>) {
   const keys = Object.keys(values);
@@ -32,6 +33,7 @@ export function buildPrompt(sanitized: NormalizedHintRequest): BuiltPrompt {
     userInput: code,
     seed: seed,
     hints: hints,
+    symbolCounts: JSON.stringify(countSymbolSequences(code)),
   });
 
   const full = `${systemPrompt}\n\n${userPrompt}`;

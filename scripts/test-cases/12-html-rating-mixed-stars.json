@@ -1,0 +1,66 @@
+{
+  "name": "HTML: Mixed stars with missing numeric rating",
+  "challenge": "Movie Review",
+  "mistake": "The span has nine filled stars and one empty star (ten total); only the numeric rating is missing.",
+  "request": {
+    "seed": "<head></head><head>\n     <meta charset=\"UTF-8\">\n     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n     <title>Movie Review</title>\n </head>\n\n<body>\n\n    <main>\n\n        <h1>Socrates</h1>\n        <img src=\"https://cdn.freecodecamp.org/curriculum/labs/rise-beyond-2.png\" alt=\"A visual image showing how Socrates felt going against the tyrants of his day in court\">\n\n        <p>Socrates against all odds</p>\n\n       <p><b>Movie Rating: </b><span aria-hidden=\"true\">⭐⭐⭐⭐⭐⭐⭐⭐⭐☆</span></p>\n\n        <h2>Cast Members</h2>\n\n        <ul>\n            <li><b>Socrates</b> as Socrates</li>\n            <li><b>Nero</b> as Tyrant Nero</li>\n            <li><b>Plato</b> as Socrates' prominent student</li>\n        </ul>\n\n        \n\n\n\n</main></body>",
+    "description": "<section id=\"description\">\n<p><strong>Objective:</strong> Fulfill the user stories below and get all the tests to pass to complete the lab.</p>\n<p><strong>User Stories:</strong></p>\n<ol>\n<li>You should have a <code>main</code> element.</li>\n<li>Inside the <code>main</code> element, you should have an <code>h1</code> element for the movie title.</li>\n<li>Below the <code>h1</code> element, you should have an <code>img</code> element displaying the movie cover. Your <code>img</code> element should have a descriptive <code>alt</code> text describing the image. You are free to use the following image if you like: <code>https://cdn.freecodecamp.org/curriculum/labs/rise-beyond-2.png</code>.</li>\n<li>You should have a <code>p</code> element containing a brief movie description.</li>\n<li>You should have another <code>p</code> element to display the movie rating. Within it, you should have these items in the listed order:\n<ul>\n<li>A <code>b</code> element with the text <code>Movie Rating:</code>.</li>\n<li>A <code>span</code> element with an <code>aria-hidden</code> attribute set to <code>true</code> containing a visual representation of the rating using stars <code>⭐⭐⭐⭐⭐⭐⭐⭐⭐☆</code>.</li>\n<li>A numerical value, representing the rating, in parentheses (e.g. <code>9.2/10</code>) after the span.</li>\n</ul>\n</li>\n<li>You should have an <code>h2</code> element with the text <code>Cast Members</code>.</li>\n<li>You should have a <code>ul</code> element.</li>\n<li>Inside the <code>ul</code> element, you should have multiple <code>li</code> elements each containing a <code>b</code> element for the actor's name followed by the corresponding character name preceded by the text <code>as</code>. (e.g., <code>James Holloway as Ethan Carter</code>).</li>\n</ol>\n</section>",
+    "hints": [
+      {
+        "text": "<p>You should have a <code>main</code> element.</p>"
+      },
+      {
+        "text": "<p>Inside the <code>main</code> element, you should have an <code>h1</code> element containing the movie title.</p>"
+      },
+      {
+        "text": "<p>Below the <code>h1</code> element, you should have an <code>img</code> element with a descriptive <code>alt</code> attribute.</p>"
+      },
+      {
+        "text": "<p>You should have a <code>p</code> element after the image that contains the movie description.</p>"
+      },
+      {
+        "text": "<p>You should have another <code>p</code> element that contains the rating.</p>"
+      },
+      {
+        "text": "<p>Inside the second <code>p</code> element, you should have a <code>b</code> element with the text <code>Movie Rating: </code>.</p>"
+      },
+      {
+        "text": "<p>There should be a <code>span</code> element inside the rating paragraph.</p>"
+      },
+      {
+        "text": "<p>The <code>span</code> element inside the rating paragraph should have ten stars, either filled in (⭐) or empty (☆), followed by a numerical value in parentheses after the <code>span</code>.</p>",
+        "failed": true
+      },
+      {
+        "text": "<p>The <code>span</code> element inside the rating paragraph should have an <code>aria-hidden</code> attribute set to <code>true</code>.</p>"
+      },
+      {
+        "text": "<p>You should have an <code>h2</code> element.</p>"
+      },
+      {
+        "text": "<p>Your <code>h2</code> should come after your second <code>p</code> element.</p>"
+      },
+      {
+        "text": "<p>Your <code>h2</code> should have the text <code>Cast Members</code>.</p>"
+      },
+      {
+        "text": "<p>You should have a <code>ul</code> element after the <code>h2</code>.</p>"
+      },
+      {
+        "text": "<p>The <code>ul</code> should contain multiple <code>li</code> elements.</p>"
+      },
+      {
+        "text": "<p>Each <code>li</code> should contain a <code>b</code> element for the actor name followed by the corresponding character name preceded by the text <code>as</code>. (e.g., <code>James Holloway as Ethan Carter</code>).</p>"
+      }
+    ],
+    "userId": "rating-mixed-regression",
+    "challengeType": "html"
+  },
+  "hintChecks": {
+    "mustMatch": ["\\b(numerical|numeric|number|value)\\b", "\\b(parentheses|parenthesized)\\b"],
+    "mustNotMatch": [
+      "\\b(eleven|twelve|11|12|too many|too few|wrong number|more than ten|fewer than ten)\\b",
+      "\\b(reduce|increase|decrease|remove)\\b[^.]*\\bstars?\\b"
+    ]
+  }
+}
