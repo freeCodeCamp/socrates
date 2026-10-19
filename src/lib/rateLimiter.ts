@@ -3,7 +3,6 @@ import path from 'node:path';
 import type Redis from 'ioredis';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { GLOBAL_LIMIT, PER_USER_LIMIT } from '../config/env';
-import { toSafeError } from '../errors/groqApiError';
 import { rootLogger } from '../config/logger';
 import type { HintRequestBody } from '../types/hint';
 
@@ -122,10 +121,7 @@ export function rateLimiterHook(opts: RateLimiterOptions) {
       reply.header('X-RateLimit-Limit', String(perUserCap));
       reply.header('X-RateLimit-Remaining', String(userRemaining));
     } catch (err: unknown) {
-      request.log.warn(
-        { err: toSafeError(err) },
-        'rate limiter error, allowing request through (fail-open)',
-      );
+      request.log.warn({ err }, 'rate limiter error, allowing request through (fail-open)');
       // Allow request through if Redis or logic fails
     }
   };

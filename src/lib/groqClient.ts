@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/node';
-import axios, { AxiosError } from 'axios';
 import {
   GROQ_API_KEY,
   GROQ_BACKOFF_BASE_MS,
@@ -13,7 +12,7 @@ import {
   MODEL_CB_FAILURES,
 } from '../config/env';
 import { type Logger, rootLogger } from '../config/logger';
-import { GroqApiError, toSafeError } from '../errors/groqApiError';
+import { GroqApiError, HttpError } from '../errors/groqApiError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
 import { CHALLENGE_TYPES, type ChallengeType } from '../types/hint';
 
@@ -30,6 +29,21 @@ export interface GroqResponse {
 }
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+interface GroqErrorBody {
+  error?: { code?: string };
+}
+
+interface ChatCompletion {
+  model?: string;
+  choices?: { message?: { content?: unknown } }[];
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    prompt_tokens_details?: { cached_tokens?: number };
+  };
+}
 
 export function selectModel(challengeType?: ChallengeType): string {
   if (!challengeType) {
@@ -107,9 +121,13 @@ async function makeGroqApiCall(
           },
         },
         async (span) => {
-          const res = await axios.post(
-            GROQ_API_URL,
-            {
+          const res = await fetch(GROQ_API_URL, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${GROQ_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
               model: requestModel,
               messages: [
                 { role: 'system', content: systemPrompt },
@@ -117,17 +135,15 @@ async function makeGroqApiCall(
               ],
               max_tokens: maxTokens,
               temperature: 0.5,
-            },
-            {
-              headers: {
-                Authorization: `Bearer ${GROQ_API_KEY}`,
-                'Content-Type': 'application/json',
-              },
-              timeout: GROQ_TIMEOUT_MS(),
-            },
-          );
+            }),
+            signal: AbortSignal.timeout(GROQ_TIMEOUT_MS()),
+          });
+          if (!res.ok) {
+            const body = (await res.json().catch(() => undefined)) as GroqErrorBody | undefined;
+            throw new HttpError(res.status, body?.error?.code);
+          }
 
-          const data = res.data;
+          const data = (await res.json()) as ChatCompletion;
           const content = data.choices?.[0]?.message?.content;
           const hint = typeof content === 'string' ? content.trim() : '';
           const model_used = data.model || GROQ_MODEL;
@@ -176,18 +192,17 @@ async function makeGroqApiCall(
         },
       );
     } catch (err) {
-      // Compute retryability while the raw error (incl. AxiosError shape) is
-      // available, then immediately strip axios internals. From this point
-      // forward `lastError` carries no `config`/`request`/`response`, so it is
-      // safe to feed to pino's err serializer without leaking the bearer.
-      const raw = err instanceof Error ? err : new Error(String(err));
-      const retryable = isRetryableError(raw);
-      const status = raw instanceof AxiosError ? raw.response?.status : undefined;
-      lastError = toSafeError(raw);
+      lastError = err instanceof Error ? err : new Error(String(err));
 
-      if (!retryable) {
+      if (lastError instanceof HttpError && lastError.status < 500 && lastError.status !== 429) {
         handleNonRetryableError(lastError, logger);
-        throw createGroqError(lastError, status, retryable);
+        throw new GroqApiError(
+          'Model provider request failed',
+          502,
+          false,
+          lastError,
+          lastError.status,
+        );
       }
 
       logger.warn({ attempt, maxRetries, err: lastError }, 'groq request failed');
@@ -285,24 +300,6 @@ export async function generateFromGroq(options: GroqRequestOptions): Promise<Gro
   throw new ModelUnavailableError('Groq returned an empty response after all retries');
 }
 
-function isRetryableError(err: Error): boolean {
-  if (err instanceof AxiosError) {
-    const status = err.response?.status;
-
-    // Retry on network errors, timeouts, and 5xx errors
-    if (!status || status >= 500 || status === 429) return true;
-
-    // Don't retry on client errors (4xx) except rate limit (429)
-    if (status >= 400 && status < 500 && status !== 429) return false;
-  }
-
-  // Retry on timeout and network errors
-  if (err.message.includes('timeout') || err.message.includes('ECONN')) return true;
-
-  // Default to retry for unknown errors
-  return true;
-}
-
 function handleNonRetryableError(err: Error, logger: Logger): void {
   logger.error({ err }, 'non-retryable groq error');
 
@@ -328,18 +325,6 @@ function handleAllRetriesFailed(
       'groq circuit breaker opened',
     );
   }
-}
-
-function createGroqError(err: Error, axiosStatus: number | undefined, isRetryable: boolean): Error {
-  if (axiosStatus !== undefined) {
-    return new GroqApiError('Model provider request failed', 502, isRetryable, err, axiosStatus);
-  }
-
-  if (isRetryable) {
-    return new GroqApiError(`Groq request error: ${err.message}`, 503, true, err);
-  }
-
-  return err;
 }
 
 export default generateFromGroq;
