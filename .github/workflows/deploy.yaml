@@ -10,7 +10,7 @@ concurrency:
 jobs:
   setup-jobs:
     name: Setup Jobs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions: {}
     outputs:
       site_tld: ${{ steps.setup.outputs.site_tld }}
@@ -37,7 +37,7 @@ jobs:
 
   build:
     name: Build & Push
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: setup-jobs
     permissions:
       contents: read
@@ -120,7 +120,7 @@ jobs:
 
   deploy:
     name: Deploy to Docker Swarm -- ${{ needs.setup-jobs.outputs.tgt_env_short }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     needs: [setup-jobs, build]
     permissions:
       deployments: write
