@@ -113,6 +113,12 @@ describe('generateFromGroq transient-failure handling', () => {
     expect(logged).not.toContain('test-key');
   });
 
+  it('retries a 200 response with a non-JSON body, then falls back', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(new Response('<html>')));
+    await expect(call()).rejects.toBeInstanceOf(ModelUnavailableError);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('treats exhausted empty responses as model unavailability', async () => {
     fetchMock.mockImplementation(
       jsonResponse({

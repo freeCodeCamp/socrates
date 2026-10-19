@@ -102,6 +102,12 @@ describe('formatHintOutput', () => {
     expect(formatHintOutput('Use <code-block> here.')).toBe('Use &lt;code-block&gt; here.');
   });
 
+  it('escapes a self-closing code tag as text', () => {
+    expect(formatHintOutput('Use <code/> and <code /> here.')).toBe(
+      'Use &lt;code/&gt; and &lt;code /&gt; here.',
+    );
+  });
+
   it('escapes a closing code tag without an opening tag', () => {
     expect(formatHintOutput('Remove the extra </code> tag.')).toBe(
       'Remove the extra &lt;/code&gt; tag.',

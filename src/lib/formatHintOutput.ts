@@ -1,6 +1,6 @@
 export const MAX_HINT_CODE_POINTS = 1000;
 
-const CODE_TAG = /<(\/?)code\s*\/?>/gi;
+const CODE_TAG = /<(\/?)code\s*>/gi;
 
 function truncateCodePoints(value: string): string {
   const codePoints = Array.from(value);
