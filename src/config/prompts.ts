@@ -13,6 +13,10 @@ You provide hints that guide students toward the solution without giving away th
 - Sentence 2: Provide a guiding action that helps them fix it without writing the code for them
 - Wrap ALL code references in <code></code> tags: elements (<code>h1</code>), selectors (<code>.title</code>), properties (<code>color</code>), values (<code>blue</code>), attributes (<code>type</code>), functions (<code>factorialize</code>), variables (<code>count</code>)
 - Only address the ONE failing test provided - ignore other potential issues
+- A failing test may check multiple requirements. Compare each requirement with the student's code; a failed test does not mean every requirement is unmet.
+- Focus the hint on one clearly verified discrepancy that explains the failure. Do not describe satisfied requirements as errors or ask the student to change correct code.
+- Never guess an actual count, value, or execution result. If a missing element or value already explains the failure, address that omission without adding an unverified counting or calculation claim.
+- Use <source_symbol_counts> for exact counts of consecutive pictorial symbols in the student's literal source. These counts are computed by the service, not estimated: count is the number of Unicode grapheme clusters between the zero-based UTF-16 start and end offsets (end excluded). The preview shows at most the first 20 symbols; count covers the entire sequence. This is a bounded list of source observations, not rendered HTML or execution results. Do not contradict these counts or infer that an unlisted sequence is absent.
 - Never provide actual code snippets or complete solutions
 - Reference the student's actual code when describing locations for changes
 - End with "and try again" or similar encouraging call to action
@@ -81,9 +85,27 @@ Comment Issues:
 - Missing comment: "Your code should have a comment. Use <code>#</code> for single-line comments in Python."
 </hint_patterns>`;
 
+// Contrast partial failures so the model does not treat every clause of a
+// combined test as broken. Keep the examples distinct from the movie-rating eval.
+const COMPOUND_TEST_EXAMPLES = `
+<example>
+<failing_test>The meter should contain five triangles followed by a numeric score in parentheses outside the span.</failing_test>
+<student_code><p><span>▲▲▲▲▲</span></p></student_code>
+<source_symbol_counts>[{"start":9,"end":14,"preview":"▲▲▲▲▲","count":5}]</source_symbol_counts>
+<output>Your meter paragraph is missing the numeric score in parentheses after the <code>span</code>. Add the parenthesized score after the closing <code>span</code> tag and try again.</output>
+</example>
+
+<example>
+<failing_test>The meter should contain five triangles followed by a numeric score in parentheses outside the span.</failing_test>
+<student_code><p><span>▲▲▲▲</span> (4/5)</p></student_code>
+<source_symbol_counts>[{"start":9,"end":13,"preview":"▲▲▲▲","count":4}]</source_symbol_counts>
+<output>Your meter's <code>span</code> contains four triangles, but five are required. Add one triangle inside the <code>span</code> and try again.</output>
+</example>`;
+
 // Type-specific examples
 const HTML_EXAMPLES = `
 <examples>
+${COMPOUND_TEST_EXAMPLES}
 <example>
 <failing_test>The text CatPhotoApp should be present in the code. You may want to check your spelling.</failing_test>
 <student_code><h1>CatPhotosApp</h1></student_code>
@@ -244,6 +266,7 @@ Comment Issues:
 
 const FULL_EXAMPLES = `
 <examples>
+${COMPOUND_TEST_EXAMPLES}
 <example>
 <failing_test>The text CatPhotoApp should be present in the code.</failing_test>
 <student_code><h1>CatPhotosApp</h1></student_code>
@@ -301,11 +324,17 @@ export const USER_PROMPT_TEMPLATE = `<challenge_description>
 {userInput}
 </student_code>
 
+<source_symbol_counts>
+{symbolCounts}
+</source_symbol_counts>
+
 <failing_test>
 {hints}
 </failing_test>
 
 Generate a helpful hint for this failing test. Remember:
+- Identify which requirement is actually unmet in the student's code; do not assume every part of the failing test is wrong.
+- Compare any required symbol count with <source_symbol_counts>. If the counts match, the symbol count is already correct: do not call it wrong or suggest changing it.
 - Sentence 1: Identify the specific issue (what's wrong or missing)
 - Sentence 2: Guide toward the fix without giving the exact code (end with "and try again")
 - Wrap all code references in <code></code> tags (e.g., <code>h1</code>, <code>color</code>, <code>blue</code>)

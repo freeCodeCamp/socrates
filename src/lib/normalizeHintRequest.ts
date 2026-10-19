@@ -5,7 +5,8 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-const PROMPT_FRAME_TAGS = /<\s*\/?\s*(?:challenge_description|student_code|failing_test)\s*>/gi;
+const PROMPT_FRAME_TAGS =
+  /<\s*\/?\s*(?:challenge_description|student_code|failing_test|source_symbol_counts)\s*>/gi;
 
 function stripPromptFrameTags(value: string): string {
   return value.replace(PROMPT_FRAME_TAGS, '');
