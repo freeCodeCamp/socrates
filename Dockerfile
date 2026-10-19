@@ -17,7 +17,7 @@ COPY src/ ./src/
 RUN pnpm run build
 # Strip .map files (source maps + declaration maps) before the production
 # stage copies dist. Source maps are uploaded to Sentry from the CI runner
-# (see .github/workflows/build.yml); the runtime image must not ship them.
+# (see .github/workflows/deploy-api.yml); the runtime image must not ship them.
 # Vm invariant V5.
 RUN find dist -name '*.map' -delete
 RUN pnpm prune --prod

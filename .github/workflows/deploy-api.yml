@@ -1,10 +1,10 @@
-name: CD - Deploy - Socrates
+name: CD - Deploy - API
 
 on:
   workflow_dispatch:
 
 concurrency:
-  group: deploy-socrates-${{ github.ref_name }}
+  group: deploy-api-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:

@@ -92,7 +92,7 @@ A `500` is the expected result — that is the test.
 
 ## Releases and source maps (CI)
 
-`deploy.yaml` is the single CD workflow — one dispatch builds, pushes, and deploys. The target environment is the **branch you dispatch from**: `prod-current` → prd (registry tld `org`), anything else (`prod-staging`, feature branches) → stg (`dev`). No environment dropdown.
+`deploy-api.yml` is the single CD workflow — one dispatch builds, pushes, and deploys. The target environment is the **branch you dispatch from**: `prod-current` → prd (registry tld `org`), anything else (`prod-staging`, feature branches) → stg (`dev`). No environment dropdown.
 
 Release and source maps are one step on the runner, before the Docker build, via `getsentry/action-release` (SHA-pinned). It creates the release, injects debug IDs, uploads maps from `./dist`, associates commits (`set_commits: auto`), and finalizes. `pnpm run build` runs on the runner only to emit the maps:
 
