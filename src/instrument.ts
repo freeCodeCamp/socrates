@@ -1,5 +1,5 @@
 // This file MUST be imported as the literal first line of src/index.ts.
-// Sentry's Node SDK patches http/https (and therefore axios) at require time,
+// Sentry's Node SDK patches http/https at require time,
 // so any module imported before this file will not be instrumented. Do not
 // move this import. Do not import this file from tests.
 import * as Sentry from '@sentry/node';

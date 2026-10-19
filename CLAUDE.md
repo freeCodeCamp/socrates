@@ -19,11 +19,10 @@ Non-obvious: `apiKeyAuthHook` is an `onRequest` hook registered inside `hintRout
 
 ## Observability
 
-- `src/instrument.ts` initializes Sentry and MUST stay the literal first import of `src/index.ts`. Sentry patches `http`/axios at require time; any earlier import escapes instrumentation. Do NOT replace with `node --import ./instrument.mjs` unless you also delete the import. (Invariant V1.)
+- `src/instrument.ts` initializes Sentry and MUST stay the literal first import of `src/index.ts`. Sentry patches `http` at require time; any earlier import escapes instrumentation. Do NOT replace with `node --import ./instrument.mjs` unless you also delete the import. (Invariant V1.)
 - Handlers/hooks: `request.log` (child logger, `reqId` auto-bound). Module scope: `rootLogger`. Library code takes the structural `Logger` type from `src/config/logger.ts` instead of importing pino.
 - **Pino argument order is object-first** (opposite of winston): `logger.info({ foo: 1 }, 'msg')`.
 - **Use `{ err }` as the key.** Pino's err serializer only fires on the literal key `err`; `{ error: ... }` silently dumps unserialized.
-- **Never log raw `AxiosError` objects.** `err.config.headers` carries `Authorization: Bearer ...`. Pass through `toSafeError()` from `src/errors/groqApiError.ts` first.
 - Sentry Logs ships `error` + `fatal` only; warn-level ops signals stay in pino stdout. Sentry traces skip `/health` + `/health/version` (probe quota).
 - **Graceful shutdown flushes Sentry.** Every exit path must `await Sentry.close(2000)` before `process.exit`. Safe no-op when no `SENTRY_DSN`. (Invariant V4.)
 - **`/hint` body NOT in Sentry** — `sendDefaultPii: false` gates request-body capture (verified 2026-06-30, SOCRATES-API-3: method+URL only, no `request.data`). `beforeSend` body-scrub is dead. Only learner-content path = `includeLocalVariables: true` (stack locals). Capturing the body needs `sendDefaultPii: true` + `maxRequestBodySize`.

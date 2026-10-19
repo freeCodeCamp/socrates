@@ -1,4 +1,3 @@
-import axios, { AxiosError } from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GroqApiError } from '../../errors/groqApiError';
 import { ModelUnavailableError } from '../../errors/modelUnavailableError';
@@ -19,14 +18,6 @@ vi.mock('../../config/env', () => ({
   MODEL_CB_COOLDOWN_MS: 30000,
 }));
 
-vi.mock('axios', async (importActual) => {
-  const actual = await importActual<typeof import('axios')>();
-  return {
-    ...actual,
-    default: { ...actual.default, post: vi.fn() },
-  };
-});
-
 vi.mock('@sentry/node', () => ({
   startSpan: (_opts: unknown, cb: (span: unknown) => unknown) =>
     cb({ setAttribute: () => {}, setAttributes: () => {} }),
@@ -41,19 +32,25 @@ const silentLogger = {
   trace: vi.fn(),
 };
 
+const fetchMock = vi.fn<typeof fetch>();
+vi.stubGlobal('fetch', fetchMock);
+
 function timeoutError() {
-  return new AxiosError('timeout of 30000ms exceeded', 'ECONNABORTED');
+  return new DOMException('The operation was aborted due to timeout', 'TimeoutError');
 }
 
 function httpError(status: number) {
-  const config = { url: 'https://groq', method: 'post', headers: {} };
-  return new AxiosError(
-    `Request failed with status code ${status}`,
-    'ERR_BAD_RESPONSE',
-    config,
-    null,
-    { status, statusText: '', headers: {}, config, data: {} },
-  );
+  return () =>
+    Promise.resolve(
+      new Response(
+        JSON.stringify({ error: { message: 'Invalid API Key', code: 'invalid_api_key' } }),
+        { status },
+      ),
+    );
+}
+
+function jsonResponse(data: unknown) {
+  return () => Promise.resolve(new Response(JSON.stringify(data)));
 }
 
 async function call() {
@@ -68,28 +65,28 @@ async function call() {
 
 describe('generateFromGroq transient-failure handling', () => {
   beforeEach(() => {
-    vi.mocked(axios.post).mockReset();
+    fetchMock.mockReset();
     for (const fn of Object.values(silentLogger)) fn.mockReset();
   });
 
   it('throws ModelUnavailableError when all retries fail on a timeout', async () => {
-    vi.mocked(axios.post).mockRejectedValue(timeoutError());
+    fetchMock.mockRejectedValue(timeoutError());
     await expect(call()).rejects.toBeInstanceOf(ModelUnavailableError);
   });
 
   it('throws ModelUnavailableError when all retries fail on a 503', async () => {
-    vi.mocked(axios.post).mockRejectedValue(httpError(503));
+    fetchMock.mockImplementation(httpError(503));
     await expect(call()).rejects.toBeInstanceOf(ModelUnavailableError);
   });
 
   it('does not log at error level for a transient exhausted-retry failure', async () => {
-    vi.mocked(axios.post).mockRejectedValue(timeoutError());
+    fetchMock.mockRejectedValue(timeoutError());
     await expect(call()).rejects.toBeInstanceOf(ModelUnavailableError);
     expect(silentLogger.error).not.toHaveBeenCalled();
   });
 
   it('still surfaces a non-retryable 401 as GroqApiError (genuine bug, Sentry-visible)', async () => {
-    vi.mocked(axios.post).mockRejectedValue(httpError(401));
+    fetchMock.mockImplementation(httpError(401));
     const error = await call().catch((err: unknown) => err);
     expect(error).toBeInstanceOf(GroqApiError);
     expect(error).toMatchObject({
@@ -100,14 +97,30 @@ describe('generateFromGroq transient-failure handling', () => {
     });
   });
 
+  it('throws ModelUnavailableError when all retries fail on a 429', async () => {
+    fetchMock.mockImplementation(httpError(429));
+    await expect(call()).rejects.toBeInstanceOf(ModelUnavailableError);
+  });
+
+  it('logs the Groq error code but not the response text or API key', async () => {
+    fetchMock.mockImplementation(httpError(401));
+    await call().catch(() => {});
+    const logged = JSON.stringify(silentLogger.error.mock.calls, (_key, value: unknown) =>
+      value instanceof Error ? { message: value.message, ...value } : value,
+    );
+    expect(logged).toContain('invalid_api_key');
+    expect(logged).not.toContain('Invalid API Key');
+    expect(logged).not.toContain('test-key');
+  });
+
   it('treats exhausted empty responses as model unavailability', async () => {
-    vi.mocked(axios.post).mockResolvedValue({
-      data: {
+    fetchMock.mockImplementation(
+      jsonResponse({
         model: 'test-model',
         choices: [{ message: { content: '   ' } }],
         usage: { completion_tokens: 0 },
-      },
-    });
+      }),
+    );
 
     await expect(call()).rejects.toBeInstanceOf(ModelUnavailableError);
     expect(silentLogger.error).not.toHaveBeenCalled();
