@@ -12,12 +12,14 @@ describe('formatHintOutput', () => {
     expect(formatHintOutput('Check <CODE>return</CODE>.')).toBe('Check <code>return</code>.');
   });
 
-  it('removes attributes and escapes unsupported markup', () => {
+  it('escapes unsupported markup and code elements with attributes', () => {
     expect(
       formatHintOutput(
         '<strong>Check</strong> <code class="language-js" onclick="alert(1)">sum</code>.',
       ),
-    ).toBe('&lt;strong&gt;Check&lt;/strong&gt; <code>sum</code>.');
+    ).toBe(
+      '&lt;strong&gt;Check&lt;/strong&gt; &lt;code class="language-js" onclick="alert(1)"&gt;sum&lt;/code&gt;.',
+    );
   });
 
   it('escapes dangerous markup instead of activating or discarding it', () => {
@@ -58,5 +60,51 @@ describe('formatHintOutput', () => {
 
   it('returns an empty string for empty input', () => {
     expect(formatHintOutput('   ')).toBe('');
+  });
+
+  it('keeps a doctype declaration visible as text', () => {
+    expect(formatHintOutput('Add <!DOCTYPE html> at the top.')).toBe(
+      'Add &lt;!DOCTYPE html&gt; at the top.',
+    );
+  });
+
+  it('keeps an HTML comment visible as text', () => {
+    expect(formatHintOutput('Add a comment like <!-- note --> and try again.')).toBe(
+      'Add a comment like &lt;!-- note --&gt; and try again.',
+    );
+  });
+
+  it('keeps attributes of escaped elements visible as text', () => {
+    expect(formatHintOutput('Your <img src="cat.jpg"> needs alt text.')).toBe(
+      'Your &lt;img src="cat.jpg"&gt; needs alt text.',
+    );
+  });
+
+  it('does not let a raw-text element swallow the closing code tag', () => {
+    expect(formatHintOutput('Use <code><textarea></code> and try again.')).toBe(
+      'Use <code>&lt;textarea&gt;</code> and try again.',
+    );
+  });
+
+  it('keeps prose after a malformed attribute quote', () => {
+    expect(formatHintOutput('Use <code a="x> hidden </code> tail ">after')).toBe(
+      'Use &lt;code a="x&gt; hidden &lt;/code&gt; tail "&gt;after',
+    );
+  });
+
+  it('keeps prose that starts like a code tag', () => {
+    expect(formatHintOutput('The <code element holds x > 0 always.')).toBe(
+      'The &lt;code element holds x &gt; 0 always.',
+    );
+  });
+
+  it('does not treat similarly named elements as code', () => {
+    expect(formatHintOutput('Use <code-block> here.')).toBe('Use &lt;code-block&gt; here.');
+  });
+
+  it('escapes a closing code tag without an opening tag', () => {
+    expect(formatHintOutput('Remove the extra </code> tag.')).toBe(
+      'Remove the extra &lt;/code&gt; tag.',
+    );
   });
 });

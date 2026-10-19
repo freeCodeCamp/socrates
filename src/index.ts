@@ -212,7 +212,11 @@ const start = async () => {
     rootLogger.info({ port: PORT, nodeEnv: NODE_ENV }, 'server listening');
   } catch (err) {
     rootLogger.error({ err }, 'server failed to start');
-    process.exit(1);
+    try {
+      await Sentry.close(2000);
+    } finally {
+      process.exit(1);
+    }
   }
 };
 

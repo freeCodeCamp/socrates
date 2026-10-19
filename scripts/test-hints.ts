@@ -20,7 +20,6 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import sanitizeHtml from 'sanitize-html';
 
 // --- ANSI colors ---
 const RED = '\x1b[0;31m';
@@ -219,13 +218,7 @@ async function runContractTests(): Promise<boolean> {
 }
 
 function followsHintOutputContract(hint: string): boolean {
-  return (
-    sanitizeHtml(hint, {
-      allowedTags: ['code'],
-      allowedAttributes: {},
-      disallowedTagsMode: 'escape',
-    }) === hint
-  );
+  return !/[<>]/.test(hint.replace(/<\/?code>/g, ''));
 }
 
 // --- Run a single test ---
