@@ -48,6 +48,7 @@ Operator walkthrough — scripts, release steps, source maps, required secrets �
 ## Gotchas
 
 - **`pnpm run build` must copy the Lua script** (`cp -r src/lib/lua dist/lib/lua`). `src/lib/rateLimiter.ts` reads `token_bucket.lua` from disk at startup; dropping the copy silently breaks rate limiting in production.
+- **`formatHintOutput` escapes; it must not parse HTML.** An HTML parser (it used `sanitize-html`) deletes what it does not model — doctypes, comments, attributes — so hints lost text. Only `<code>` stays live, without attributes.
 - **API key auth skipped outside production/staging.** `apiKeyAuthHook` short-circuits for any other `NODE_ENV`.
 - **`POST /hint` skips the Cloudflare managed WAF** (zone `freecodecamp.org`, skip rule `socrates-hint-skip-managed`). Camper code trips body signatures (`<script>`, Log4j `${…}`) and the edge 403'd real hints (API-FASTIFY-5F/-5K). Compensating edge rule `socrates-hint-require-api-key` returns the app's 401 JSON when `x-api-key` is absent. Both rules share one host + path + method predicate — change them together. A `/hint` 403 with no Socrates transaction came from the edge: check Cloudflare firewall events, not app logs. Staging (`freecodecamp.dev`) has no managed WAF.
 - **Per-challenge model override.** `groqClient.ts` reads `GROQ_MODEL_<TYPE>` env vars via dynamic `process.env` lookup (not in `env.ts`), falling back to `GROQ_MODEL`.

@@ -101,7 +101,7 @@ describe('POST /hint', () => {
 
   it('formats model output using the limited-HTML contract', async () => {
     vi.mocked(generateFromGroq).mockResolvedValueOnce({
-      hint: '<strong>Check</strong> <code class="language-js">return</code>.',
+      hint: '<strong>Check</strong> <code>return</code>.',
       model_used: 'test-model',
     });
 
