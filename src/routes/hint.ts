@@ -1,5 +1,4 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
-import { GroqApiError } from '../errors/groqApiError';
 import { InputValidationError } from '../errors/inputValidationError';
 import { ModelUnavailableError } from '../errors/modelUnavailableError';
 import { generateFromGroq } from '../lib/groqClient';
@@ -78,10 +77,7 @@ async function hintRoutes(fastify: FastifyInstance) {
         return reply.send({ hint: formattedHint, model_used: result.model_used });
       } catch (err: unknown) {
         if (err instanceof InputValidationError) throw err;
-        if (
-          err instanceof ModelUnavailableError ||
-          (err instanceof GroqApiError && err.isRetryable)
-        ) {
+        if (err instanceof ModelUnavailableError) {
           // Provide a graceful fallback hint rather than failing hard
           const fallbackHint =
             'The hint service is temporarily unavailable. Try validating syntax, checking nesting, and reading the failing test message.';

@@ -275,26 +275,9 @@ describe('POST /hint', () => {
     expect(response.headers['x-model-available']).toBe('false');
   });
 
-  it('returns 200 with fallback hint when a retryable GroqApiError escapes', async () => {
-    vi.mocked(generateFromGroq).mockRejectedValueOnce(
-      new GroqApiError('Groq API error (503): unavailable', 503, true),
-    );
-
-    const response = await app.inject({
-      method: 'POST',
-      url: '/hint',
-      payload: validBody,
-    });
-
-    expect(response.statusCode).toBe(200);
-
-    const body = response.json();
-    expect(body.model_used).toBe('fallback');
-  });
-
   it('maps a non-retryable GroqApiError to a stable 502 response', async () => {
     vi.mocked(generateFromGroq).mockRejectedValueOnce(
-      new GroqApiError('Model provider request failed', 502, false, undefined, 401),
+      new GroqApiError('Model provider request failed', 502, undefined, 401),
     );
 
     const response = await app.inject({

@@ -12,21 +12,13 @@ export class HttpError extends Error {
 
 export class GroqApiError extends Error implements ApiError {
   status: number;
-  isRetryable: boolean;
   upstreamStatus?: number;
   originalError?: Error;
 
-  constructor(
-    message: string,
-    status: number,
-    isRetryable: boolean,
-    originalError?: Error,
-    upstreamStatus?: number,
-  ) {
+  constructor(message: string, status: number, originalError?: Error, upstreamStatus?: number) {
     super(message);
     this.name = 'GroqApiError';
     this.status = status;
-    this.isRetryable = isRetryable;
     this.originalError = originalError;
     this.upstreamStatus = upstreamStatus;
   }

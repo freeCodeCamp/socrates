@@ -93,7 +93,6 @@ describe('generateFromGroq transient-failure handling', () => {
       message: 'Model provider request failed',
       status: 502,
       upstreamStatus: 401,
-      isRetryable: false,
     });
   });
 

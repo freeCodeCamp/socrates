@@ -196,13 +196,7 @@ async function makeGroqApiCall(
 
       if (lastError instanceof HttpError && lastError.status < 500 && lastError.status !== 429) {
         handleNonRetryableError(lastError, logger);
-        throw new GroqApiError(
-          'Model provider request failed',
-          502,
-          false,
-          lastError,
-          lastError.status,
-        );
+        throw new GroqApiError('Model provider request failed', 502, lastError, lastError.status);
       }
 
       logger.warn({ attempt, maxRetries, err: lastError }, 'groq request failed');
