@@ -12,7 +12,7 @@ async function healthRoutes(fastify: FastifyInstance) {
         response: {
           200: {
             description: 'API is healthy',
-            oneOf: [{ $ref: 'HealthResponse#' }, { $ref: 'ExtendedHealthResponse#' }],
+            $ref: 'HealthResponse#',
           },
         },
       },

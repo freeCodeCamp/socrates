@@ -185,29 +185,13 @@ export const sharedSchemas = [
         description: 'Server uptime in seconds',
         example: 3600.5,
       },
-    },
-  },
-  {
-    $id: 'ExtendedHealthResponse',
-    type: 'object',
-    properties: {
-      status: {
-        type: 'string',
-        enum: ['ok'],
-        example: 'ok',
-      },
-      uptime: {
-        type: 'number',
-        description: 'Server uptime in seconds',
-        example: 3600.5,
-      },
       checks: {
         type: 'array',
         items: {
           type: 'object',
           additionalProperties: true,
         },
-        description: 'Array of dependency health checks',
+        description: 'Dependency health checks. Present only when ENABLE_EXTENDED_HEALTH is true.',
         example: [{ redis: 'ok' }, { groq: 'ok', models_count: 10 }],
       },
     },

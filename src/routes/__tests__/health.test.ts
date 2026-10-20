@@ -29,6 +29,7 @@ describe('GET /health', () => {
     expect(response.statusCode).toBe(200);
 
     const body = response.json();
+    expect(Object.keys(body)).toStrictEqual(['status', 'uptime']);
     expect(body.status).toBe('ok');
     expect(typeof body.uptime).toBe('number');
   });
