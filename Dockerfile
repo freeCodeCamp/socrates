@@ -2,7 +2,7 @@
 FROM node:24.21.0-bookworm-slim AS deps
 WORKDIR /app
 COPY scripts/install-verified.mjs ./scripts/
-RUN node scripts/install-verified.mjs pnpm@12.12.1
+RUN node scripts/install-verified.mjs pnpm@12.13.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
@@ -10,7 +10,7 @@ RUN pnpm install --frozen-lockfile
 FROM node:24.21.0-bookworm-slim AS build
 WORKDIR /app
 COPY scripts/install-verified.mjs ./scripts/
-RUN node scripts/install-verified.mjs pnpm@12.12.1
+RUN node scripts/install-verified.mjs pnpm@12.13.0
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY src/ ./src/
