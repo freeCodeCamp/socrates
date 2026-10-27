@@ -1,6 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>freecodecamp/renovate-config"],
+  "extends": [
+    "github>freecodecamp/renovate-config",
+    "github>freecodecamp/renovate-config:automerge"
+  ],
   "customManagers": [
     {
       "description": "Track the sentry-cli version installed by a workflow run step.",
