@@ -87,7 +87,7 @@ jobs:
 
       - name: Sentry release + source maps
         if: env.SENTRY_AUTH_TOKEN != ''
-        uses: getsentry/action-release@6fb9aeade7061441cf3864e34fbe11a1457ad7dc # v3.7.1
+        uses: getsentry/action-release@e6703d0b00208e0b3687ba660d18ab5af7892821 # v3.7.2
         with:
           version: ${{ env.tagname }}
           sourcemaps: ./dist
@@ -131,7 +131,7 @@ jobs:
 
     steps:
       - name: Setup and connect to Tailscale network
-        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+        uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
