@@ -13,7 +13,7 @@ Internal documentation for running, building, and deploying Socrates. Public int
 
 ## Development
 
-Requires Node.js 24+, pnpm 10, and Redis.
+Requires Node.js 26+, pnpm 12, and Redis.
 
 ```bash
 pnpm install

@@ -4,9 +4,9 @@
   "description": "freeCodeCamp AI Hint API - Socrates",
   "main": "dist/index.js",
   "engines": {
-    "node": ">=24"
+    "node": ">=26"
   },
-  "packageManager": "pnpm@12.16.1",
+  "packageManager": "pnpm@12.17.0",
   "scripts": {
     "dev": "BUILD_VERSION=dev-$(git rev-parse --short HEAD 2>/dev/null || echo unknown) nodemon",
     "build": "tsc -p . && mkdir -p dist/lib/lua && cp -r src/lib/lua/. dist/lib/lua/",
@@ -34,7 +34,7 @@
     "pino": "^10.3.1"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.6.6",
     "nodemon": "^3.1.14",
     "oxlint": "^1.81.0",
     "prettier": "^3.9.6",

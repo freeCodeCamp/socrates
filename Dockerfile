@@ -1,16 +1,16 @@
 # Stage 1 — Install dependencies
-FROM node:24.22.0-bookworm-slim AS deps
+FROM node:26.13.0-bookworm-slim AS deps
 WORKDIR /app
 COPY scripts/install-verified.mjs ./scripts/
-RUN node scripts/install-verified.mjs pnpm@12.16.1
+RUN node scripts/install-verified.mjs pnpm@12.17.0
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Stage 2 — Build TypeScript and prune dev dependencies
-FROM node:24.22.0-bookworm-slim AS build
+FROM node:26.13.0-bookworm-slim AS build
 WORKDIR /app
 COPY scripts/install-verified.mjs ./scripts/
-RUN node scripts/install-verified.mjs pnpm@12.16.1
+RUN node scripts/install-verified.mjs pnpm@12.17.0
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY src/ ./src/
@@ -23,7 +23,7 @@ RUN find dist -name '*.map' -delete
 RUN pnpm prune --prod
 
 # Stage 3 — Production image
-FROM node:24.22.0-bookworm-slim AS production
+FROM node:26.13.0-bookworm-slim AS production
 RUN apt-get update \
   && apt-get install -y --no-install-recommends tini wget \
   && rm -rf /var/lib/apt/lists/*
