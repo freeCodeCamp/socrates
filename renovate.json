@@ -30,6 +30,11 @@
       "description": "Keep the pnpm version in package.json and the Dockerfile in one PR.",
       "matchPackageNames": ["pnpm"],
       "groupName": "pnpm"
+    },
+    {
+      "description": "Compose updates wait for a person: Build Image builds the Dockerfile only.",
+      "matchManagers": ["docker-compose"],
+      "automerge": false
     }
   ]
 }
