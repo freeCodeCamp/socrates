@@ -170,7 +170,7 @@ jobs:
             exit 1
           fi
           echo "Triggering Gantry..."
-          if ! curl -fsS --max-time 30 -X POST "https://${WEBHOOK_HOST}/hooks/run-gantry" \
+          if ! curl --fail-with-body -sS --max-time 360 -X POST "https://${WEBHOOK_HOST}/hooks/run-gantry" \
             -H "Content-Type: application/json" \
             -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
             -d "{\"GANTRY_SERVICES_FILTERS\":\"name=${STACK_NAME}_svc-socrates\"}"; then
