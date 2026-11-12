@@ -162,7 +162,6 @@ jobs:
       - name: Trigger Gantry via Webhook
         env:
           WEBHOOK_HOST: ${{ secrets.WEBHOOK_HOST }}
-          WEBHOOK_HOST_2: ${{ secrets.WEBHOOK_HOST_2 }}
           WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
           STACK_NAME: ${{ needs.setup-jobs.outputs.tgt_env_short }}-socrates
         run: |
@@ -170,23 +169,12 @@ jobs:
             echo "::error::WEBHOOK_HOST is not set"
             exit 1
           fi
-          HOSTS=("$WEBHOOK_HOST")
-          if [[ -n "$WEBHOOK_HOST_2" ]]; then
-            HOSTS+=("$WEBHOOK_HOST_2")
-          fi
-
-          FAILED=()
-          for i in "${!HOSTS[@]}"; do
-            echo "Triggering Gantry on target $((i + 1)) of ${#HOSTS[@]}..."
-            if ! curl -fsS -X POST "https://${HOSTS[$i]}/hooks/run-gantry" \
-              -H "Content-Type: application/json" \
-              -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
-              -d "{\"GANTRY_SERVICES_FILTERS\":\"name=${STACK_NAME}_svc-socrates\"}"; then
-              FAILED+=("$((i + 1))")
-            fi
-          done
-          if [[ ${#FAILED[@]} -gt 0 ]]; then
-            echo "::error::Webhook failed on target(s) ${FAILED[*]} (1 = WEBHOOK_HOST, 2 = WEBHOOK_HOST_2)"
+          echo "Triggering Gantry..."
+          if ! curl --fail-with-body -sS --max-time 360 -X POST "https://${WEBHOOK_HOST}/hooks/run-gantry" \
+            -H "Content-Type: application/json" \
+            -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
+            -d "{\"GANTRY_SERVICES_FILTERS\":\"name=${STACK_NAME}_svc-socrates\"}"; then
+            echo "::error::Webhook failed on WEBHOOK_HOST"
             exit 1
           fi
 
